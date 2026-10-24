@@ -5,7 +5,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   Bell,
-  Building2,
   Check,
   ChevronDown,
   CircleAlert,
@@ -16,12 +15,9 @@ import {
   Globe,
   Layers,
   MapPin,
-  Plane,
-  Radio,
   Search,
   Settings2,
   ShieldCheck,
-  Ship,
   SlidersHorizontal,
   Sparkles,
   Target,
@@ -37,29 +33,27 @@ import {
   ScaleControl,
   setWorkerUrl,
 } from "maplibre-gl";
+import {
+  LAYERS,
+  METRICS,
+  SAMPLE_RECORDS,
+  SIGNALS,
+  SOURCE_CANDIDATES,
+  needsReview,
+  pad,
+  type LayerId,
+  type Metric,
+  type Signal,
+} from "./data/sample";
 import mapWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 type ViewId = "overview" | "evidence" | "atlas" | "movement" | "research";
-type LayerId = "events" | "aviation" | "maritime" | "sites";
 
 type NavigationItem = {
   id: ViewId;
   label: string;
   icon: LucideIcon;
-};
-
-type SignalStatus = "REVIEW" | "CONFLICT" | "TRACEABLE" | "UPDATED";
-
-type Signal = {
-  id: string;
-  category: string;
-  title: string;
-  summary: string;
-  status: SignalStatus;
-  time: string;
-  icon: LucideIcon;
-  accent: string;
 };
 
 const NAVIGATION: NavigationItem[] = [
@@ -116,233 +110,16 @@ const VIEW_COPY: Record<
   },
 };
 
-const METRICS: {
-  label: string;
-  value: string;
-  detail: string;
-  change: string;
-  direction: "up" | "down" | "neutral";
-  icon: LucideIcon;
-  color: string;
-}[] = [
-  {
-    label: "Evidence records",
-    value: "128",
-    detail: "Sample dataset",
-    change: "+12",
-    direction: "up",
-    icon: Database,
-    color: "blue",
-  },
-  {
-    label: "Signals to review",
-    value: "04",
-    detail: "Demonstration only",
-    change: "2 open",
-    direction: "neutral",
-    icon: Radio,
-    color: "amber",
-  },
-  {
-    label: "Source freshness",
-    value: "92%",
-    detail: "Simulated metric",
-    change: "+3.4%",
-    direction: "up",
-    icon: Activity,
-    color: "green",
-  },
-  {
-    label: "Regions in sample",
-    value: "12",
-    detail: "Illustrative records",
-    change: "Global",
-    direction: "neutral",
-    icon: Globe,
-    color: "violet",
-  },
-];
-
-const SIGNALS: Signal[] = [
-  {
-    id: "SIG-DEMO-001",
-    category: "EVENT REPORT",
-    title: "Synthetic event cluster A",
-    summary:
-      "Example records are grouped for testing source lineage and corroboration.",
-    status: "REVIEW",
-    time: "12m",
-    icon: Radio,
-    accent: "amber",
-  },
-  {
-    id: "SIG-DEMO-002",
-    category: "SOURCE CONFLICT",
-    title: "Conflicting sample claims",
-    summary:
-      "Two fictional reports disagree on the timing of an illustrative event.",
-    status: "CONFLICT",
-    time: "26m",
-    icon: FileSearch,
-    accent: "red",
-  },
-  {
-    id: "SIG-DEMO-003",
-    category: "DATA MOVEMENT",
-    title: "Regional baseline deviation",
-    summary:
-      "A synthetic aggregate differs from its example historical baseline.",
-    status: "REVIEW",
-    time: "41m",
-    icon: Activity,
-    accent: "blue",
-  },
-  {
-    id: "SIG-DEMO-004",
-    category: "SOURCE UPDATE",
-    title: "Reference record revised",
-    summary:
-      "An example source record has a new version available for inspection.",
-    status: "UPDATED",
-    time: "1h",
-    icon: Database,
-    accent: "violet",
-  },
-  {
-    id: "SIG-DEMO-005",
-    category: "EVIDENCE TRACE",
-    title: "Duplicate reporting identified",
-    summary:
-      "A demonstration source chain links derivative reports to one origin.",
-    status: "TRACEABLE",
-    time: "2h",
-    icon: Check,
-    accent: "green",
-  },
-];
-
-const LAYERS: {
-  id: LayerId;
-  label: string;
-  icon: LucideIcon;
-  color: string;
-  mapLayerId: string;
-}[] = [
-  {
-    id: "events",
-    label: "Events",
-    icon: Radio,
-    color: "#E7AE67",
-    mapLayerId: "demo-events",
-  },
-  {
-    id: "aviation",
-    label: "Air",
-    icon: Plane,
-    color: "#72C8F5",
-    mapLayerId: "demo-aviation",
-  },
-  {
-    id: "maritime",
-    label: "Sea",
-    icon: Ship,
-    color: "#67D5C2",
-    mapLayerId: "demo-maritime",
-  },
-  {
-    id: "sites",
-    label: "Sites",
-    icon: Building2,
-    color: "#B7A0FF",
-    mapLayerId: "demo-sites",
-  },
-];
-
-const SOURCE_CANDIDATES = [
-  {
-    name: "GDELT",
-    description: "News and event discovery",
-    status: "NOT CONNECTED",
-    icon: Radio,
-  },
-  {
-    name: "UCDP",
-    description: "Historical conflict research",
-    status: "NOT CONNECTED",
-    icon: Database,
-  },
-  {
-    name: "Aviation data",
-    description: "Access and licence review pending",
-    status: "PLANNED",
-    icon: Plane,
-  },
-  {
-    name: "Maritime data",
-    description: "Access and licence review pending",
-    status: "PLANNED",
-    icon: Ship,
-  },
-];
-
-const MAP_LAYER_COLORS: Record<LayerId, string> = {
-  events: "#E7AE67",
-  aviation: "#72C8F5",
-  maritime: "#67D5C2",
-  sites: "#B7A0FF",
-};
-
 function addDemoMapLayers(map: MapLibreMap) {
   map.addSource("jocasta-demo-records", {
     type: "geojson",
     data: {
       type: "FeatureCollection",
-      features: [
-        {
-          type: "Feature",
-          properties: {
-            kind: "events",
-            label: "Synthetic event cluster A",
-          },
-          geometry: {
-            type: "Point",
-            coordinates: [-31, 25],
-          },
-        },
-        {
-          type: "Feature",
-          properties: {
-            kind: "aviation",
-            label: "Synthetic aviation aggregate B",
-          },
-          geometry: {
-            type: "Point",
-            coordinates: [37, 14],
-          },
-        },
-        {
-          type: "Feature",
-          properties: {
-            kind: "maritime",
-            label: "Synthetic maritime pattern C",
-          },
-          geometry: {
-            type: "Point",
-            coordinates: [112, -12],
-          },
-        },
-        {
-          type: "Feature",
-          properties: {
-            kind: "sites",
-            label: "Synthetic public-site record D",
-          },
-          geometry: {
-            type: "Point",
-            coordinates: [71, 48],
-          },
-        },
-      ],
+      features: SAMPLE_RECORDS.map((record) => ({
+        type: "Feature" as const,
+        properties: { kind: record.kind, label: record.label },
+        geometry: { type: "Point" as const, coordinates: record.coordinates },
+      })),
     },
   });
 
@@ -354,7 +131,7 @@ function addDemoMapLayers(map: MapLibreMap) {
       filter: ["==", ["get", "kind"], layer.id],
       paint: {
         "circle-radius": 6,
-        "circle-color": MAP_LAYER_COLORS[layer.id],
+        "circle-color": layer.color,
         "circle-opacity": 0.92,
         "circle-stroke-width": 2,
         "circle-stroke-color": "#111923",
@@ -402,7 +179,7 @@ function addDemoMapLayers(map: MapLibreMap) {
 function MetricCard({
   metric,
 }: {
-  metric: (typeof METRICS)[number];
+  metric: Metric;
 }) {
   const Icon = metric.icon;
   const TrendIcon =
@@ -495,10 +272,7 @@ function App() {
           .toLowerCase()
           .includes(normalizedQuery);
 
-      const matchesReview =
-        !onlyNeedsReview ||
-        signal.status === "REVIEW" ||
-        signal.status === "CONFLICT";
+      const matchesReview = !onlyNeedsReview || needsReview(signal);
 
       return matchesQuery && matchesReview;
     });
@@ -613,7 +387,7 @@ function App() {
                 <Icon size={18} strokeWidth={1.8} />
                 <span>{item.label}</span>
                 {item.id === "evidence" && (
-                  <span className="nav-count">05</span>
+                  <span className="nav-count">{pad(SIGNALS.length)}</span>
                 )}
               </button>
             );
@@ -831,7 +605,7 @@ function App() {
                   </span>
                   <span className="map-record-count">
                     <span className="map-record-dot" />
-                    04 SAMPLE RECORDS
+                    {pad(SAMPLE_RECORDS.length)} SAMPLE RECORDS
                   </span>
                 </div>
 

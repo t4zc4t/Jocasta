@@ -162,6 +162,7 @@ button:disabled {
   font-size: 17px;
   font-weight: 700;
   letter-spacing: 3.2px;
+  white-space: nowrap;
 }
 
 .brand-subtitle {
@@ -903,7 +904,8 @@ button:disabled {
   position: absolute;
   top: 13px;
   left: 13px;
-  right: 13px;
+  /* leave room for the zoom controls */
+  right: 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1978,7 +1980,7 @@ button:disabled {
   .map-top-overlay {
     top: 9px;
     left: 9px;
-    right: 9px;
+    right: 50px;
   }
 
   .map-mode-chip,

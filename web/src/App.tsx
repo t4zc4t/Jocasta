@@ -1,4 +1,4 @@
-import { Suspense, lazy, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   ArrowDownRight,
@@ -193,7 +193,60 @@ function App() {
     maritime: true,
     sites: true,
   });
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+
   const view = VIEW_COPY[activeView];
+
+  // "/" jumps to search, like the hint in the box says
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      const typing =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable;
+
+      if (event.key === "/" && !typing) {
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  // close the popover on Escape or a click outside it
+  useEffect(() => {
+    if (!showNotifications) {
+      return;
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setShowNotifications(false);
+      }
+    }
+
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target as HTMLElement | null;
+      if (
+        popoverRef.current?.contains(target) ||
+        target?.closest("[data-notifications-toggle]")
+      ) {
+        return;
+      }
+      setShowNotifications(false);
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [showNotifications]);
 
   const visibleSignals = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -266,6 +319,7 @@ function App() {
             type="button"
             className="nav-item"
             onClick={() => setShowNotifications((current) => !current)}
+            data-notifications-toggle
           >
             <Bell size={18} strokeWidth={1.8} />
             <span>Notifications</span>
@@ -323,6 +377,7 @@ function App() {
             <label className="search-box">
               <Search size={16} />
               <input
+                ref={searchRef}
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -338,6 +393,7 @@ function App() {
                 showNotifications ? "icon-button-active" : ""
               }`}
               aria-label="Toggle notifications"
+              data-notifications-toggle
               aria-expanded={showNotifications}
               onClick={() => setShowNotifications((current) => !current)}
             >
@@ -357,7 +413,7 @@ function App() {
             </button>
 
             {showNotifications && (
-              <div className="notification-popover">
+              <div className="notification-popover" ref={popoverRef}>
                 <div className="popover-heading">
                   <span>Workspace status</span>
                   <button

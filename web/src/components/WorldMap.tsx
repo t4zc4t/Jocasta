@@ -11,6 +11,15 @@ import mapWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { LAYERS, SAMPLE_RECORDS, type LayerId } from "../data/sample";
 
+// many borders are disputed (Kashmir and others), so the map shows none
+function hideBorders(map: MapLibreMap) {
+  for (const layer of map.getStyle().layers) {
+    if ("source-layer" in layer && layer["source-layer"] === "boundary") {
+      map.setLayoutProperty(layer.id, "visibility", "none");
+    }
+  }
+}
+
 function addDemoMapLayers(map: MapLibreMap) {
   map.addSource("jocasta-demo-records", {
     type: "geojson",
@@ -121,6 +130,7 @@ export default function WorldMap({ activeLayers }: WorldMapProps) {
 
     map.once("load", () => {
       styleLoaded = true;
+      hideBorders(map);
       addDemoMapLayers(map);
       setMapStatus("BASEMAP READY");
       setMapReady(true);

@@ -506,7 +506,9 @@ function App() {
                   <ShieldCheck size={15} />
                   <span>
                     Synthetic coordinates only. No real events, installations,
-                    or operational positions are represented.
+                    or operational positions are represented. Borders are not
+                    shown, and place names do not imply any position on
+                    disputed territory.
                   </span>
                 </div>
                 <span className="map-footer-coordinate">GLOBAL / DEMO</span>

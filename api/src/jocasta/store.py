@@ -194,3 +194,23 @@ class Store:
             params += (_ts(as_of),)
         rows = self.db.execute(sql + " ORDER BY created_at", params).fetchall()
         return [EvidenceLink.model_validate_json(r[0]) for r in rows]
+
+    def list_sources(self) -> list[Source]:
+        rows = self.db.execute("SELECT body FROM sources ORDER BY id").fetchall()
+        return [Source.model_validate_json(r[0]) for r in rows]
+
+    def list_events(self, as_of: datetime | None = None) -> list[Event]:
+        """Latest known version of every event, optionally at a past moment."""
+        cutoff = _ts(as_of) if as_of else "9999"
+        rows = self.db.execute(
+            """
+            SELECT body FROM events e
+            WHERE recorded_at <= :cutoff AND version = (
+                SELECT MAX(version) FROM events
+                WHERE event_id = e.event_id AND recorded_at <= :cutoff
+            )
+            ORDER BY event_id
+            """,
+            {"cutoff": cutoff},
+        ).fetchall()
+        return [Event.model_validate_json(r[0]) for r in rows]

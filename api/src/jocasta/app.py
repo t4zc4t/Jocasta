@@ -16,6 +16,7 @@ from uuid import UUID
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from pydantic import AwareDatetime
 
 from . import __version__
@@ -56,6 +57,11 @@ def _event_or_404(store: Store, event_id: UUID, as_of: datetime | None) -> Event
     if event is None:
         raise HTTPException(status_code=404, detail="event not found")
     return event
+
+
+@app.get("/", include_in_schema=False)
+def root() -> RedirectResponse:
+    return RedirectResponse("/docs")
 
 
 @app.get("/health")

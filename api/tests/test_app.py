@@ -64,6 +64,12 @@ def test_health():
     assert response.json()["status"] == "ok"
 
 
+def test_root_goes_to_docs():
+    response = TestClient(app).get("/", follow_redirects=False)
+    assert response.status_code == 307
+    assert response.headers["location"] == "/docs"
+
+
 def test_sources(setup):
     client, _ = setup
     assert [s["id"] for s in client.get("/sources").json()] == ["test-source"]

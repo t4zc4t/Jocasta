@@ -1,7 +1,5 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
-
 :root {
-  font-family: "DM Sans", sans-serif;
+  font-family: "DM Sans Variable", sans-serif;
   color: #e5ebf3;
   background: #0a0e13;
   font-synthesis: none;
@@ -25,7 +23,7 @@
   --red: #f17b82;
   --violet: #b9a0ff;
   --mono: "DM Mono", monospace;
-  --display: "Space Grotesk", sans-serif;
+  --display: "Space Grotesk Variable", sans-serif;
 }
 
 * {
@@ -49,7 +47,7 @@ body {
 body,
 button,
 input {
-  font-family: "DM Sans", sans-serif;
+  font-family: "DM Sans Variable", sans-serif;
 }
 
 button,
@@ -1049,7 +1047,7 @@ button:disabled {
 
 .map-canvas .maplibregl-map {
   background: transparent;
-  font-family: "DM Sans", sans-serif;
+  font-family: "DM Sans Variable", sans-serif;
 }
 
 .map-canvas .maplibregl-ctrl-group {
@@ -1560,7 +1558,7 @@ button:disabled {
   max-width: 235px;
   padding: 2px;
   color: #203142;
-  font-family: "DM Sans", sans-serif;
+  font-family: "DM Sans Variable", sans-serif;
 }
 
 .jocasta-popup strong {

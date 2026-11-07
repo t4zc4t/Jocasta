@@ -1,6 +1,11 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+// fonts are bundled so nothing loads from google
+import "@fontsource-variable/dm-sans/index.css";
+import "@fontsource-variable/space-grotesk/index.css";
+import "@fontsource/dm-mono/400.css";
+import "@fontsource/dm-mono/500.css";
 import "./styles.css";
 
 const rootElement = document.getElementById("root");

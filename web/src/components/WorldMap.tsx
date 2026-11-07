@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   AttributionControl,
+  type GeoJSONSource,
   Map as MapLibreMap,
   NavigationControl,
   Popup,
@@ -9,7 +10,7 @@ import {
 } from "maplibre-gl";
 import mapWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { LAYERS, SAMPLE_RECORDS, type LayerId } from "../data/sample";
+import { LAYERS, type LayerId, type SampleRecord } from "../data/sample";
 
 // many borders are disputed (Kashmir and others), so the map shows none
 function hideBorders(map: MapLibreMap) {
@@ -20,17 +21,21 @@ function hideBorders(map: MapLibreMap) {
   }
 }
 
-function addDemoMapLayers(map: MapLibreMap) {
+function toGeoJson(records: SampleRecord[]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: records.map((record) => ({
+      type: "Feature" as const,
+      properties: { kind: record.kind, label: record.label },
+      geometry: { type: "Point" as const, coordinates: record.coordinates },
+    })),
+  };
+}
+
+function addDemoMapLayers(map: MapLibreMap, records: SampleRecord[]) {
   map.addSource("jocasta-demo-records", {
     type: "geojson",
-    data: {
-      type: "FeatureCollection",
-      features: SAMPLE_RECORDS.map((record) => ({
-        type: "Feature" as const,
-        properties: { kind: record.kind, label: record.label },
-        geometry: { type: "Point" as const, coordinates: record.coordinates },
-      })),
-    },
+    data: toGeoJson(records),
   });
 
   for (const layer of LAYERS) {
@@ -88,9 +93,13 @@ function addDemoMapLayers(map: MapLibreMap) {
 
 type WorldMapProps = {
   activeLayers: Record<LayerId, boolean>;
+  records: SampleRecord[];
 };
 
-export default function WorldMap({ activeLayers }: WorldMapProps) {
+export default function WorldMap({ activeLayers, records }: WorldMapProps) {
+  // the load handler only runs once, so it reads the latest records from here
+  const recordsRef = useRef(records);
+
   const [mapStatus, setMapStatus] = useState("CONNECTING");
   const [mapReady, setMapReady] = useState(false);
 
@@ -131,7 +140,7 @@ export default function WorldMap({ activeLayers }: WorldMapProps) {
     map.once("load", () => {
       styleLoaded = true;
       hideBorders(map);
-      addDemoMapLayers(map);
+      addDemoMapLayers(map, recordsRef.current);
       setMapStatus("BASEMAP READY");
       setMapReady(true);
     });
@@ -165,6 +174,17 @@ export default function WorldMap({ activeLayers }: WorldMapProps) {
       }
     }
   }, [activeLayers, mapReady]);
+
+  useEffect(() => {
+    recordsRef.current = records;
+    if (!mapReady) {
+      return;
+    }
+    const source = mapRef.current?.getSource("jocasta-demo-records") as
+      | GeoJSONSource
+      | undefined;
+    source?.setData(toGeoJson(records));
+  }, [records, mapReady]);
 
   return (
     <>

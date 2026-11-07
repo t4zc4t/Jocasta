@@ -37,7 +37,8 @@ import {
   type Metric,
   type Signal,
 } from "./data/sample";
-import { useApiStatus, type ApiStatus } from "./lib/api";
+import { toRecords, toSignal } from "./data/fromApi";
+import { useApiEvents, useApiStatus, type ApiStatus } from "./lib/api";
 
 // maplibre is most of the bundle, so load it in its own chunk
 const WorldMap = lazy(() => import("./components/WorldMap"));
@@ -212,6 +213,16 @@ function App() {
   const popoverRef = useRef<HTMLDivElement | null>(null);
 
   const api = useApiStatus();
+  const apiEvents = useApiEvents(api.status);
+  const live = apiEvents !== null;
+  const signals = useMemo(
+    () => (apiEvents ? apiEvents.map(toSignal) : SIGNALS),
+    [apiEvents],
+  );
+  const records = useMemo(
+    () => (apiEvents ? toRecords(apiEvents) : SAMPLE_RECORDS),
+    [apiEvents],
+  );
 
   const view = VIEW_COPY[activeView];
 
@@ -268,7 +279,7 @@ function App() {
   const visibleSignals = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return SIGNALS.filter((signal) => {
+    return signals.filter((signal) => {
       const matchesQuery =
         !normalizedQuery ||
         `${signal.title} ${signal.summary} ${signal.category} ${signal.id}`
@@ -279,7 +290,7 @@ function App() {
 
       return matchesQuery && matchesReview;
     });
-  }, [query, onlyNeedsReview]);
+  }, [query, onlyNeedsReview, signals]);
 
   function toggleLayer(layerId: LayerId) {
     setActiveLayers((current) => ({
@@ -322,7 +333,7 @@ function App() {
                 <Icon size={18} strokeWidth={1.8} />
                 <span>{item.label}</span>
                 {item.id === "evidence" && (
-                  <span className="nav-count">{pad(SIGNALS.length)}</span>
+                  <span className="nav-count">{pad(signals.length)}</span>
                 )}
               </button>
             );
@@ -534,7 +545,7 @@ function App() {
 
               <div className="map-shell">
                 <Suspense fallback={<MapLoading />}>
-                  <WorldMap activeLayers={activeLayers} />
+                  <WorldMap activeLayers={activeLayers} records={records} />
                 </Suspense>
 
                 <div className="map-top-overlay">
@@ -544,7 +555,7 @@ function App() {
                   </span>
                   <span className="map-record-count">
                     <span className="map-record-dot" />
-                    {pad(SAMPLE_RECORDS.length)} SAMPLE RECORDS
+                    {pad(records.length)} {live ? "LOCAL API RECORDS" : "SAMPLE RECORDS"}
                   </span>
                 </div>
 

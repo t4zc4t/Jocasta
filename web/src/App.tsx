@@ -37,6 +37,7 @@ import {
   type Metric,
   type Signal,
 } from "./data/sample";
+import { useApiStatus, type ApiStatus } from "./lib/api";
 
 // maplibre is most of the bundle, so load it in its own chunk
 const WorldMap = lazy(() => import("./components/WorldMap"));
@@ -101,6 +102,20 @@ const VIEW_COPY: Record<
     mapTitle: "Research context",
     feedTitle: "Research observations",
   },
+};
+
+const API_ADDRESS: Record<ApiStatus, string> = {
+  checking: "CHECKING...",
+  online: "127.0.0.1 · ONLINE",
+  offline: "127.0.0.1 · OFFLINE",
+  none: "STATIC BUILD",
+};
+
+const API_NOTE: Record<ApiStatus, string> = {
+  checking: "Looking for the local API",
+  online: "Local evidence API connected",
+  offline: "Start the API to connect it",
+  none: "Runs locally, not on this site",
 };
 
 function MapLoading() {
@@ -195,6 +210,8 @@ function App() {
   });
   const searchRef = useRef<HTMLInputElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
+
+  const api = useApiStatus();
 
   const view = VIEW_COPY[activeView];
 
@@ -340,13 +357,16 @@ function App() {
 
         <div className="local-node-card">
           <div className="local-node-heading">
-            <span className="local-node-indicator" />
-            <span>LOCAL NODE</span>
+            <span
+              className={`local-node-indicator local-node-indicator-${api.status}`}
+            />
+            <span>EVIDENCE API</span>
             <ShieldCheck size={15} />
           </div>
-          <div className="local-node-address">127.0.0.1 · PRIVATE</div>
+          <div className="local-node-address">{API_ADDRESS[api.status]}</div>
           <div className="local-node-description">
-            Local development environment
+            {API_NOTE[api.status]}
+            {api.version && ` · v${api.version}`}
           </div>
         </div>
 

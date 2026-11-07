@@ -288,6 +288,17 @@ button:disabled {
   box-shadow: 0 0 9px #6ed6ad70;
 }
 
+.local-node-indicator-checking,
+.local-node-indicator-none {
+  background: var(--muted);
+  box-shadow: none;
+}
+
+.local-node-indicator-offline {
+  background: var(--amber);
+  box-shadow: 0 0 9px #e7b16e70;
+}
+
 .local-node-address {
   margin-top: 13px;
   color: #e0e9ef;

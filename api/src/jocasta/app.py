@@ -75,8 +75,15 @@ def sources(store: StoreDep) -> list[Source]:
 
 
 @app.get("/events")
-def events(store: StoreDep, as_of: AsOf = None) -> list[Event]:
-    return store.list_events(as_of)
+def events(
+    store: StoreDep,
+    as_of: AsOf = None,
+    limit: Annotated[int, Query(ge=1, le=5000)] = 500,
+) -> list[Event]:
+    """Most recent events first, so a big import doesn't flood the dashboard."""
+    found = store.list_events(as_of)
+    found.sort(key=lambda e: e.started_at, reverse=True)
+    return found[:limit]
 
 
 @app.get("/events/{event_id}")

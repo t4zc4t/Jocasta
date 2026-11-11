@@ -126,3 +126,10 @@ def test_api_is_read_only(setup):
     client, v1 = setup
     assert client.post("/events", json={}).status_code == 405
     assert client.delete(f"/events/{v1.event_id}").status_code == 405
+
+
+def test_events_limit_and_order(setup):
+    client, _ = setup
+    assert len(client.get("/events", params={"limit": 1}).json()) == 1
+    assert client.get("/events", params={"limit": 0}).status_code == 422
+    assert client.get("/events", params={"limit": 999999}).status_code == 422

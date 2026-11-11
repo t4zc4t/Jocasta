@@ -6,6 +6,8 @@ Everything is stored as the model's JSON plus a few columns for lookups.
 """
 
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID
@@ -74,6 +76,7 @@ class Store:
         # has to be set outside a transaction or sqlite ignores it
         self.db.execute("PRAGMA foreign_keys = ON")
         self.db.autocommit = False
+        self._batching = False
         self.db.executescript(SCHEMA)
         for table in TABLES:
             for action in ("UPDATE", "DELETE"):
@@ -97,10 +100,23 @@ class Store:
 
     def _insert(self, sql: str, params: tuple) -> None:
         try:
-            with self.db:
+            if self._batching:
                 self.db.execute(sql, params)
+            else:
+                with self.db:
+                    self.db.execute(sql, params)
         except sqlite3.IntegrityError as error:
             raise StoreError(str(error)) from error
+
+    @contextmanager
+    def batch(self) -> Iterator[None]:
+        """Do many writes in one transaction. All of it is kept or none."""
+        self._batching = True
+        try:
+            with self.db:
+                yield
+        finally:
+            self._batching = False
 
     # writes
 

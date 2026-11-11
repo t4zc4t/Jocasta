@@ -177,3 +177,16 @@ def test_data_survives_reopen(tmp_path):
         s.add_event(event)
     with Store(path) as s:
         assert s.latest_event(event.event_id) == event
+
+
+def test_batch_keeps_all_or_nothing(store):
+    good, bad = make_event(), make_claim(source_id="nobody")
+    with pytest.raises(StoreError):
+        with store.batch():
+            store.add_event(good)
+            store.add_claim(bad)
+    assert store.latest_event(good.event_id) is None
+
+    with store.batch():
+        store.add_event(good)
+    assert store.latest_event(good.event_id) == good

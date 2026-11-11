@@ -33,6 +33,10 @@ docs/   roadmap and notes
 
 ## Running it
 
+On Windows, double-click `boot.cmd`. It sets everything up, loads some demo records, starts the API and the dashboard, and opens it in your browser. Close the two small windows it opens to stop it.
+
+To do it by hand instead:
+
 The dashboard needs Node 24 or newer:
 
 ```

@@ -195,48 +195,58 @@ export function pad(count: number) {
   return String(count).padStart(2, "0");
 }
 
-const reviewCount = SIGNALS.filter(needsReview).length;
-const conflictCount = SIGNALS.filter((s) => s.status === "CONFLICT").length;
 const connectedCount = SOURCE_CANDIDATES.filter(
   (s) => s.status === "CONNECTED",
 ).length;
 
-// every number here is counted from the records above
-export const METRICS: Metric[] = [
-  {
-    label: "Sample signals",
-    value: pad(SIGNALS.length),
-    detail: "Synthetic records",
-    change: "Demo",
-    direction: "neutral",
-    icon: Database,
-    color: "blue",
-  },
-  {
-    label: "Signals to review",
-    value: pad(reviewCount),
-    detail: "Review or conflict",
-    change: `${conflictCount} conflict${conflictCount === 1 ? "" : "s"}`,
-    direction: "neutral",
-    icon: Radio,
-    color: "amber",
-  },
-  {
-    label: "Map records",
-    value: pad(SAMPLE_RECORDS.length),
-    detail: "Synthetic points",
-    change: `${LAYERS.length} layers`,
-    direction: "neutral",
-    icon: Globe,
-    color: "violet",
-  },
-  {
-    label: "Sources connected",
-    value: `${connectedCount}/${SOURCE_CANDIDATES.length}`,
-    detail: "Connectors planned",
-    change: "Not live",
-    direction: "neutral",
-    icon: Activity,
-    color: "green",
-  },
-];
+// every number here is counted from whatever records are on screen
+export function buildMetrics(
+  signals: Signal[],
+  records: SampleRecord[],
+  live: boolean,
+): Metric[] {
+  const reviewCount = signals.filter(needsReview).length;
+  const conflictCount = signals.filter((s) => s.status === "CONFLICT").length;
+  const updatedCount = signals.filter((s) => s.status === "UPDATED").length;
+
+  return [
+    {
+      label: live ? "Events" : "Sample signals",
+      value: pad(signals.length),
+      detail: live ? "From the local API" : "Synthetic records",
+      change: live ? "Local" : "Demo",
+      direction: "neutral",
+      icon: Database,
+      color: "blue",
+    },
+    {
+      label: "Signals to review",
+      value: pad(reviewCount),
+      detail: "Review or conflict",
+      change: live
+        ? `${updatedCount} revised`
+        : `${conflictCount} conflict${conflictCount === 1 ? "" : "s"}`,
+      direction: "neutral",
+      icon: Radio,
+      color: "amber",
+    },
+    {
+      label: "Map records",
+      value: pad(records.length),
+      detail: live ? "Events with a location" : "Synthetic points",
+      change: `${LAYERS.length} layers`,
+      direction: "neutral",
+      icon: Globe,
+      color: "violet",
+    },
+    {
+      label: "Sources connected",
+      value: `${connectedCount}/${SOURCE_CANDIDATES.length}`,
+      detail: "Connectors planned",
+      change: "Not live",
+      direction: "neutral",
+      icon: Activity,
+      color: "green",
+    },
+  ];
+}

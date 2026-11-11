@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import {
   LAYERS,
-  METRICS,
+  buildMetrics,
   SAMPLE_RECORDS,
   SIGNALS,
   SOURCE_CANDIDATES,
@@ -222,6 +222,10 @@ function App() {
   const records = useMemo(
     () => (apiEvents ? toRecords(apiEvents) : SAMPLE_RECORDS),
     [apiEvents],
+  );
+  const metrics = useMemo(
+    () => buildMetrics(signals, records, live),
+    [signals, records, live],
   );
 
   const view = VIEW_COPY[activeView];
@@ -508,7 +512,7 @@ function App() {
           </section>
 
           <section className="metrics-grid" aria-label="Sample metrics">
-            {METRICS.map((metric) => (
+            {metrics.map((metric) => (
               <MetricCard key={metric.label} metric={metric} />
             ))}
           </section>

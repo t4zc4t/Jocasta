@@ -160,18 +160,28 @@ export const SAMPLE_RECORDS: SampleRecord[] = [
   },
 ];
 
-export const SOURCE_CANDIDATES = [
+export type SourceCandidate = {
+  name: string;
+  description: string;
+  status: "CONNECTED" | "NOT CONNECTED" | "PLANNED";
+  icon: LucideIcon;
+  // registry id in the api, so the card can tell when it's actually loaded
+  sourceId?: string;
+};
+
+export const SOURCE_CANDIDATES: SourceCandidate[] = [
+  {
+    name: "UCDP GED",
+    description: "Historical conflict events, CC BY 4.0",
+    status: "NOT CONNECTED",
+    icon: Database,
+    sourceId: "ucdp-ged",
+  },
   {
     name: "GDELT",
     description: "News and event discovery",
     status: "NOT CONNECTED",
     icon: Radio,
-  },
-  {
-    name: "UCDP",
-    description: "Historical conflict research",
-    status: "NOT CONNECTED",
-    icon: Database,
   },
   {
     name: "Aviation data",
@@ -187,6 +197,14 @@ export const SOURCE_CANDIDATES = [
   },
 ];
 
+export function withConnected(ids: string[]): SourceCandidate[] {
+  return SOURCE_CANDIDATES.map((source) =>
+    source.sourceId && ids.includes(source.sourceId)
+      ? { ...source, status: "CONNECTED" }
+      : source,
+  );
+}
+
 export function needsReview(signal: Signal) {
   return signal.status === "REVIEW" || signal.status === "CONFLICT";
 }
@@ -195,16 +213,14 @@ export function pad(count: number) {
   return String(count).padStart(2, "0");
 }
 
-const connectedCount = SOURCE_CANDIDATES.filter(
-  (s) => s.status === "CONNECTED",
-).length;
-
 // every number here is counted from whatever records are on screen
 export function buildMetrics(
   signals: Signal[],
   records: SampleRecord[],
   live: boolean,
+  sources: SourceCandidate[] = SOURCE_CANDIDATES,
 ): Metric[] {
+  const connectedCount = sources.filter((s) => s.status === "CONNECTED").length;
   const reviewCount = signals.filter(needsReview).length;
   const conflictCount = signals.filter((s) => s.status === "CONFLICT").length;
   const updatedCount = signals.filter((s) => s.status === "UPDATED").length;
@@ -241,9 +257,9 @@ export function buildMetrics(
     },
     {
       label: "Sources connected",
-      value: `${connectedCount}/${SOURCE_CANDIDATES.length}`,
-      detail: "Connectors planned",
-      change: "Not live",
+      value: `${connectedCount}/${sources.length}`,
+      detail: connectedCount ? "Loaded in the local API" : "Connectors planned",
+      change: connectedCount ? "Local" : "Not live",
       direction: "neutral",
       icon: Activity,
       color: "green",

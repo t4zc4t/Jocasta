@@ -61,6 +61,7 @@ export type ApiEvent = {
   category: string;
   place: { name: string; lat: number | null; lon: number | null };
   confidence: "unverified" | "low" | "medium" | "high";
+  started_at: string;
   recorded_at: string;
 };
 
@@ -94,4 +95,30 @@ export function useApiEvents(status: ApiStatus): ApiEvent[] | null {
 
   // stale events never show once the api goes away
   return status === "online" ? events : null;
+}
+
+export type ApiSource = { id: string; name: string; attribution: string };
+
+export function useApiSources(status: ApiStatus): ApiSource[] {
+  const [sources, setSources] = useState<ApiSource[]>([]);
+
+  useEffect(() => {
+    if (status !== "online" || !API_URL) {
+      return;
+    }
+    let stopped = false;
+    fetch(`${API_URL}/sources`, { signal: AbortSignal.timeout(5000) })
+      .then((response) => (response.ok ? response.json() : []))
+      .then((body: ApiSource[]) => {
+        if (!stopped) {
+          setSources(body);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      stopped = true;
+    };
+  }, [status]);
+
+  return status === "online" ? sources : [];
 }

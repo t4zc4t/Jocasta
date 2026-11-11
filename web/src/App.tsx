@@ -30,7 +30,7 @@ import {
   buildMetrics,
   SAMPLE_RECORDS,
   SIGNALS,
-  SOURCE_CANDIDATES,
+  withConnected,
   needsReview,
   pad,
   type LayerId,
@@ -38,7 +38,12 @@ import {
   type Signal,
 } from "./data/sample";
 import { toRecords, toSignal } from "./data/fromApi";
-import { useApiEvents, useApiStatus, type ApiStatus } from "./lib/api";
+import {
+  useApiEvents,
+  useApiSources,
+  useApiStatus,
+  type ApiStatus,
+} from "./lib/api";
 
 // maplibre is most of the bundle, so load it in its own chunk
 const WorldMap = lazy(() => import("./components/WorldMap"));
@@ -223,9 +228,18 @@ function App() {
     () => (apiEvents ? toRecords(apiEvents) : SAMPLE_RECORDS),
     [apiEvents],
   );
+  const apiSources = useApiSources(api.status);
+  const sources = useMemo(
+    () => withConnected(apiSources.map((s) => s.id)),
+    [apiSources],
+  );
+  const attribution = apiSources
+    .filter((s) => s.id !== "jocasta-demo")
+    .map((s) => s.name)
+    .join(", ");
   const metrics = useMemo(
-    () => buildMetrics(signals, records, live),
-    [signals, records, live],
+    () => buildMetrics(signals, records, live, sources),
+    [signals, records, live, sources],
   );
 
   const view = VIEW_COPY[activeView];
@@ -483,12 +497,22 @@ function App() {
           <span className="demo-banner-icon">
             <CircleAlert size={15} />
           </span>
-          <span>
-            <strong>DEMONSTRATION MODE</strong>
-            <span className="demo-banner-divider">/</span>
-            All event records and map markers are synthetic placeholders. No
-            live intelligence feeds are connected.
-          </span>
+          {live ? (
+            <span>
+              <strong>LOCAL DATA</strong>
+              <span className="demo-banner-divider">/</span>
+              Records come from your local evidence API
+              {attribution && `, using ${attribution}`}. Historical data, not
+              a live feed.
+            </span>
+          ) : (
+            <span>
+              <strong>DEMONSTRATION MODE</strong>
+              <span className="demo-banner-divider">/</span>
+              All event records and map markers are synthetic placeholders. No
+              live intelligence feeds are connected.
+            </span>
+          )}
           <span className="demo-banner-label">NOT LIVE DATA</span>
         </div>
 
@@ -596,13 +620,16 @@ function App() {
                 <div className="map-footer-note">
                   <ShieldCheck size={15} />
                   <span>
-                    Synthetic coordinates only. No real events, installations,
-                    or operational positions are represented. Borders are not
-                    shown, and place names do not imply any position on
-                    disputed territory.
+                    {live
+                      ? "Historical records, positions rounded to about 11 km. No live or operational positions."
+                      : "Synthetic coordinates only. No real events, installations, or operational positions are represented."}{" "}
+                    Borders are not shown, and place names do not imply any
+                    position on disputed territory.
                   </span>
                 </div>
-                <span className="map-footer-coordinate">GLOBAL / DEMO</span>
+                <span className="map-footer-coordinate">
+                  {live ? "GLOBAL / LOCAL" : "GLOBAL / DEMO"}
+                </span>
               </div>
             </article>
 
@@ -690,7 +717,7 @@ function App() {
               </div>
 
               <div className="source-list">
-                {SOURCE_CANDIDATES.map((source) => {
+                {sources.map((source) => {
                   const Icon = source.icon;
 
                   return (

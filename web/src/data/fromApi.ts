@@ -25,7 +25,8 @@ export function toSignal(event: ApiEvent): Signal {
     title: event.title,
     summary: event.summary || "No summary yet.",
     status: statusOf(event),
-    time: age(event.recorded_at),
+    // when it happened, not when we imported it
+    time: age(event.started_at),
     icon: revised ? RefreshCw : Radio,
     accent: revised ? "violet" : "amber",
   };

@@ -49,7 +49,7 @@ function addDemoMapLayers(map: MapLibreMap, records: SampleRecord[]) {
         "circle-color": layer.color,
         "circle-opacity": 0.92,
         "circle-stroke-width": 2,
-        "circle-stroke-color": "#111923",
+        "circle-stroke-color": "#0B0909",
       },
     });
 

@@ -15,8 +15,8 @@
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",
-    "@fontsource-variable/space-grotesk": "^5.3.0",
     "@fontsource/dm-mono": "^5.3.0",
+    "@fontsource/shippori-mincho": "^5.3.0",
     "lucide-react": "^1.60.0",
     "maplibre-gl": "^6.15.0",
     "react": "^19.3.1",

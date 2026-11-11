@@ -3,7 +3,8 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 // fonts are bundled so nothing loads from google
 import "@fontsource-variable/dm-sans/index.css";
-import "@fontsource-variable/space-grotesk/index.css";
+import "@fontsource/shippori-mincho/500.css";
+import "@fontsource/shippori-mincho/700.css";
 import "@fontsource/dm-mono/400.css";
 import "@fontsource/dm-mono/500.css";
 import "./styles.css";

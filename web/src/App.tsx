@@ -1,38 +1,30 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Activity,
-  ArrowDownRight,
-  ArrowRight,
   ArrowUpRight,
   Bell,
   Check,
-  ChevronDown,
-  CircleAlert,
-  Clock,
-  Database,
   FileSearch,
   Filter,
   Globe,
   Layers,
   MapPin,
+  Activity,
+  Moon,
   Search,
-  Settings2,
   ShieldCheck,
-  SlidersHorizontal,
-  Sparkles,
+  Sun,
   Target,
   X,
-  Zap,
   type LucideIcon,
 } from "lucide-react";
 import {
   LAYERS,
-  buildMetrics,
   SAMPLE_RECORDS,
   SIGNALS,
-  withConnected,
+  buildMetrics,
   needsReview,
   pad,
+  withConnected,
   type LayerId,
   type Metric,
   type Signal,
@@ -44,84 +36,69 @@ import {
   useApiStatus,
   type ApiStatus,
 } from "./lib/api";
+import { useTheme } from "./lib/theme";
 
 // maplibre is most of the bundle, so load it in its own chunk
 const WorldMap = lazy(() => import("./components/WorldMap"));
 
 type ViewId = "overview" | "evidence" | "atlas" | "movement" | "research";
 
-type NavigationItem = {
+const VIEWS: {
   id: ViewId;
   label: string;
   icon: LucideIcon;
-};
-
-const NAVIGATION: NavigationItem[] = [
-  { id: "overview", label: "Global overview", icon: Globe },
-  { id: "evidence", label: "Evidence graph", icon: FileSearch },
-  { id: "atlas", label: "Strategic atlas", icon: MapPin },
-  { id: "movement", label: "Movement watch", icon: Activity },
-  { id: "research", label: "Research lab", icon: Target },
+  title: string;
+  lede: string;
+}[] = [
+  {
+    id: "overview",
+    label: "Overview",
+    icon: Globe,
+    title: "Global overview",
+    lede: "What has been reported, where, and the evidence behind each record.",
+  },
+  {
+    id: "evidence",
+    label: "Evidence",
+    icon: FileSearch,
+    title: "Evidence graph",
+    lede: "Claims, the sources they came from, and whether anyone independent agrees.",
+  },
+  {
+    id: "atlas",
+    label: "Atlas",
+    icon: MapPin,
+    title: "Strategic atlas",
+    lede: "Documented, permanent places only. Planned, not built yet.",
+  },
+  {
+    id: "movement",
+    label: "Movement",
+    icon: Activity,
+    title: "Movement watch",
+    lede: "Aviation and maritime trends at aggregate level. Planned, not built yet.",
+  },
+  {
+    id: "research",
+    label: "Research",
+    icon: Target,
+    title: "Research lab",
+    lede: "Baselines, replays and experiments, once the evidence core is solid.",
+  },
 ];
 
-const VIEW_COPY: Record<
-  ViewId,
-  {
-    title: string;
-    description: string;
-    mapTitle: string;
-    feedTitle: string;
-  }
-> = {
-  overview: {
-    title: "Global overview",
-    description:
-      "A global picture of reported developments, with the evidence trail kept in view.",
-    mapTitle: "Global activity map",
-    feedTitle: "Priority signals",
-  },
-  evidence: {
-    title: "Evidence graph",
-    description:
-      "Inspect claims, source relationships, corroboration, and contradictions.",
-    mapTitle: "Evidence geography",
-    feedTitle: "Evidence queue",
-  },
-  atlas: {
-    title: "Strategic atlas",
-    description:
-      "Explore the planned registry of documented installations and strategic infrastructure.",
-    mapTitle: "Strategic geography",
-    feedTitle: "Registry updates",
-  },
-  movement: {
-    title: "Movement watch",
-    description:
-      "Explore regional aviation and maritime trends using permitted public data.",
-    mapTitle: "Regional movement view",
-    feedTitle: "Movement signals",
-  },
-  research: {
-    title: "Research lab",
-    description:
-      "Investigate historical patterns and prepare reproducible experiments.",
-    mapTitle: "Research context",
-    feedTitle: "Research observations",
-  },
+const API_LABEL: Record<ApiStatus, string> = {
+  checking: "Checking",
+  online: "API online",
+  offline: "API offline",
+  none: "Static build",
 };
 
-const API_ADDRESS: Record<ApiStatus, string> = {
-  checking: "CHECKING...",
-  online: "127.0.0.1 · ONLINE",
-  offline: "127.0.0.1 · OFFLINE",
-  none: "STATIC BUILD",
-};
-
-const API_NOTE: Record<ApiStatus, string> = {
-  checking: "Looking for the local API",
-  online: "Local evidence API connected",
-  offline: "Start the API to connect it",
-  none: "Runs locally, not on this site",
+const ALL_LAYERS: Record<LayerId, boolean> = {
+  events: true,
+  aviation: true,
+  maritime: true,
+  sites: true,
 };
 
 function MapLoading() {
@@ -129,42 +106,21 @@ function MapLoading() {
     <>
       <div className="map-canvas" />
       <div className="map-status">
-        <span className="map-status-dot" />
-        LOADING MAP
+        <span className="dot" />
+        Loading map
       </div>
     </>
   );
 }
 
-function MetricCard({
-  metric,
-}: {
-  metric: Metric;
-}) {
+function MetricCard({ metric }: { metric: Metric }) {
   const Icon = metric.icon;
-  const TrendIcon =
-    metric.direction === "down"
-      ? ArrowDownRight
-      : metric.direction === "up"
-        ? ArrowUpRight
-        : null;
-
   return (
-    <article className="metric-card">
-      <div className="metric-top">
-        <span className={`metric-icon metric-icon-${metric.color}`}>
-          <Icon size={17} strokeWidth={1.8} />
-        </span>
-        {TrendIcon ? (
-          <span className={`metric-change metric-change-${metric.direction}`}>
-            <TrendIcon size={13} />
-            {metric.change}
-          </span>
-        ) : (
-          <span className="metric-tag">{metric.change}</span>
-        )}
+    <article className="card metric">
+      <div className="metric-head">
+        <Icon size={15} strokeWidth={1.7} />
+        <span>{metric.change}</span>
       </div>
-
       <div className="metric-value">{metric.value}</div>
       <div className="metric-label">{metric.label}</div>
       <div className="metric-detail">{metric.detail}</div>
@@ -173,53 +129,35 @@ function MetricCard({
 }
 
 function SignalRow({ signal }: { signal: Signal }) {
-  const Icon = signal.icon;
-
   return (
-    <article className="signal-row">
-      <span className={`signal-icon signal-icon-${signal.accent}`}>
-        <Icon size={16} strokeWidth={1.8} />
-      </span>
-
-      <div className="signal-copy">
-        <div className="signal-category">{signal.category}</div>
-        <h3>{signal.title}</h3>
-        <p>{signal.summary}</p>
-
-        <div className="signal-meta">
-          <span className={`signal-status status-${signal.status.toLowerCase()}`}>
-            <span className="status-dot" />
-            {signal.status}
-          </span>
-          <span className="signal-time">
-            <Clock size={12} />
-            {signal.time} ago
-          </span>
-        </div>
+    <article className={`signal status-${signal.status.toLowerCase()}`}>
+      <div className="signal-top">
+        <span className="signal-category">{signal.category}</span>
+        <span className="signal-time">{signal.time} ago</span>
       </div>
-
-      <ArrowRight className="signal-arrow" size={15} />
+      <h3>{signal.title}</h3>
+      <p>{signal.summary}</p>
+      <span className="signal-status">{signal.status}</span>
     </article>
   );
 }
 
-function App() {
-  const [activeView, setActiveView] = useState<ViewId>("overview");
+export default function App() {
+  const [theme, toggleTheme] = useTheme();
+  const [view, setView] = useState<ViewId>("overview");
   const [query, setQuery] = useState("");
-  const [onlyNeedsReview, setOnlyNeedsReview] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [activeLayers, setActiveLayers] = useState<Record<LayerId, boolean>>({
-    events: true,
-    aviation: true,
-    maritime: true,
-    sites: true,
-  });
+  const [onlyReview, setOnlyReview] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const [layers, setLayers] = useState(ALL_LAYERS);
+
   const searchRef = useRef<HTMLInputElement | null>(null);
-  const popoverRef = useRef<HTMLDivElement | null>(null);
+  const notesRef = useRef<HTMLDivElement | null>(null);
 
   const api = useApiStatus();
   const apiEvents = useApiEvents(api.status);
+  const apiSources = useApiSources(api.status);
   const live = apiEvents !== null;
+
   const signals = useMemo(
     () => (apiEvents ? apiEvents.map(toSignal) : SIGNALS),
     [apiEvents],
@@ -228,581 +166,345 @@ function App() {
     () => (apiEvents ? toRecords(apiEvents) : SAMPLE_RECORDS),
     [apiEvents],
   );
-  const apiSources = useApiSources(api.status);
   const sources = useMemo(
     () => withConnected(apiSources.map((s) => s.id)),
     [apiSources],
+  );
+  const metrics = useMemo(
+    () => buildMetrics(signals, records, live, sources),
+    [signals, records, live, sources],
   );
   const attribution = apiSources
     .filter((s) => s.id !== "jocasta-demo")
     .map((s) => s.name)
     .join(", ");
-  const metrics = useMemo(
-    () => buildMetrics(signals, records, live, sources),
-    [signals, records, live, sources],
-  );
 
-  const view = VIEW_COPY[activeView];
+  const current = VIEWS.find((v) => v.id === view) ?? VIEWS[0];
 
-  // "/" jumps to search, like the hint in the box says
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return signals.filter((s) => {
+      const matches =
+        !q ||
+        `${s.title} ${s.summary} ${s.category} ${s.id}`
+          .toLowerCase()
+          .includes(q);
+      return matches && (!onlyReview || needsReview(s));
+    });
+  }, [signals, query, onlyReview]);
+
+  // "/" jumps to search
   useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
+    function onKey(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null;
       const typing =
         target?.tagName === "INPUT" ||
         target?.tagName === "TEXTAREA" ||
         target?.isContentEditable;
-
       if (event.key === "/" && !typing) {
         event.preventDefault();
         searchRef.current?.focus();
       }
     }
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // close the popover on Escape or a click outside it
+  // close notes on Escape or a click outside
   useEffect(() => {
-    if (!showNotifications) {
-      return;
+    if (!showNotes) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setShowNotes(false);
     }
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setShowNotifications(false);
-      }
-    }
-
-    function onPointerDown(event: PointerEvent) {
+    function onDown(event: PointerEvent) {
       const target = event.target as HTMLElement | null;
-      if (
-        popoverRef.current?.contains(target) ||
-        target?.closest("[data-notifications-toggle]")
-      ) {
+      if (notesRef.current?.contains(target) || target?.closest("[data-notes]")) {
         return;
       }
-      setShowNotifications(false);
+      setShowNotes(false);
     }
-
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("pointerdown", onDown);
     return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerdown", onDown);
     };
-  }, [showNotifications]);
-
-  const visibleSignals = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    return signals.filter((signal) => {
-      const matchesQuery =
-        !normalizedQuery ||
-        `${signal.title} ${signal.summary} ${signal.category} ${signal.id}`
-          .toLowerCase()
-          .includes(normalizedQuery);
-
-      const matchesReview = !onlyNeedsReview || needsReview(signal);
-
-      return matchesQuery && matchesReview;
-    });
-  }, [query, onlyNeedsReview, signals]);
-
-  function toggleLayer(layerId: LayerId) {
-    setActiveLayers((current) => ({
-      ...current,
-      [layerId]: !current[layerId],
-    }));
-  }
+  }, [showNotes]);
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand-block">
-          <div className="brand-symbol">
-            <div className="brand-symbol-core" />
-            <span className="brand-symbol-orbit brand-symbol-orbit-one" />
-            <span className="brand-symbol-orbit brand-symbol-orbit-two" />
+    <div className="page">
+      <header className="masthead">
+        <div className="brand">
+          <div className="moon" aria-hidden="true">
+            <span className="moon-halo" />
+            <span className="moon-disc" />
           </div>
-
-          <div className="brand-copy">
-            <div className="brand-name">J O C A S T A</div>
-            <div className="brand-subtitle">INTELLIGENCE SYSTEMS</div>
+          <div>
+            <div className="brand-name">Jocasta</div>
+            <div className="brand-sub">Evidence before inference</div>
           </div>
         </div>
 
-        <div className="workspace-label">WORKSPACE</div>
-
-        <nav className="primary-navigation" aria-label="Main navigation">
-          {NAVIGATION.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeView === item.id;
-
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className={`nav-item ${isActive ? "nav-item-active" : ""}`}
-                onClick={() => setActiveView(item.id)}
-                aria-current={isActive ? "page" : undefined}
-              >
-                <Icon size={18} strokeWidth={1.8} />
-                <span>{item.label}</span>
-                {item.id === "evidence" && (
-                  <span className="nav-count">{pad(signals.length)}</span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className="sidebar-section">
-          <div className="workspace-label">SYSTEM</div>
-
-          <button
-            type="button"
-            className="nav-item"
-            onClick={() => setShowNotifications((current) => !current)}
-            data-notifications-toggle
-          >
-            <Bell size={18} strokeWidth={1.8} />
-            <span>Notifications</span>
-            <span className="nav-indicator" />
-          </button>
-
-          <button
-            type="button"
-            className="nav-item"
-            onClick={() => setActiveView("research")}
-          >
-            <Settings2 size={18} strokeWidth={1.8} />
-            <span>System settings</span>
-          </button>
-        </div>
-
-        <div className="sidebar-spacer" />
-
-        <div className="local-node-card">
-          <div className="local-node-heading">
-            <span
-              className={`local-node-indicator local-node-indicator-${api.status}`}
+        <div className="masthead-tools">
+          <label className="search">
+            <Search size={15} />
+            <input
+              ref={searchRef}
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search records"
+              aria-label="Search records"
             />
-            <span>EVIDENCE API</span>
-            <ShieldCheck size={15} />
-          </div>
-          <div className="local-node-address">{API_ADDRESS[api.status]}</div>
-          <div className="local-node-description">
-            {API_NOTE[api.status]}
-            {api.version && ` · v${api.version}`}
-          </div>
-        </div>
+            <kbd>/</kbd>
+          </label>
 
-        <div className="sidebar-footer">
-          <span>JOC</span>
-          <span>VERSION 0.1.0</span>
-          <span className="sidebar-footer-dot" />
-        </div>
-      </aside>
-
-      <main className="main-shell">
-        <header className="topbar">
-          <div className="topbar-context">
-            <div className="breadcrumb">
-              <span>JOC / WORKSPACE</span>
-              <span className="breadcrumb-divider">/</span>
-              <span className="breadcrumb-current">
-                {activeView.toUpperCase()}
-              </span>
-            </div>
-
-            <div className="topbar-subtitle">
-              GLOBAL STRATEGIC INTELLIGENCE
-            </div>
-          </div>
-
-          <div className="topbar-actions">
-            <label className="search-box">
-              <Search size={16} />
-              <input
-                ref={searchRef}
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search sample evidence..."
-                aria-label="Search sample evidence"
-              />
-              <kbd>/</kbd>
-            </label>
-
-            <button
-              type="button"
-              className={`icon-button notification-button ${
-                showNotifications ? "icon-button-active" : ""
-              }`}
-              aria-label="Toggle notifications"
-              data-notifications-toggle
-              aria-expanded={showNotifications}
-              onClick={() => setShowNotifications((current) => !current)}
-            >
-              <Bell size={18} />
-              <span className="notification-dot" />
-            </button>
-
-            <button
-              type="button"
-              className="profile-button"
-              onClick={() => setActiveView("research")}
-              aria-label="Open research workspace"
-            >
-              <span className="profile-avatar">J</span>
-              <span className="profile-label">LOCAL</span>
-              <ChevronDown size={14} />
-            </button>
-
-            {showNotifications && (
-              <div className="notification-popover" ref={popoverRef}>
-                <div className="popover-heading">
-                  <span>Workspace status</span>
-                  <button
-                    type="button"
-                    className="popover-close"
-                    onClick={() => setShowNotifications(false)}
-                    aria-label="Close notifications"
-                  >
-                    <X size={15} />
-                  </button>
-                </div>
-                <div className="popover-item">
-                  <CircleAlert size={16} />
-                  <div>
-                    <strong>Demonstration mode</strong>
-                    <p>No live intelligence feeds are connected.</p>
-                  </div>
-                </div>
-                <div className="popover-item">
-                  <Database size={16} />
-                  <div>
-                    <strong>Local application</strong>
-                    <p>Evidence connectors are still planned.</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </header>
-
-        <div className="demo-banner">
-          <span className="demo-banner-icon">
-            <CircleAlert size={15} />
+          <span className={`api-pill api-${api.status}`} title="Local evidence API">
+            <span className="dot" />
+            {API_LABEL[api.status]}
+            {api.version && <span className="api-version">v{api.version}</span>}
           </span>
-          {live ? (
-            <span>
-              <strong>LOCAL DATA</strong>
-              <span className="demo-banner-divider">/</span>
-              Records come from your local evidence API
-              {attribution && `, using ${attribution}`}. Historical data, not
-              a live feed.
-            </span>
-          ) : (
-            <span>
-              <strong>DEMONSTRATION MODE</strong>
-              <span className="demo-banner-divider">/</span>
-              All event records and map markers are synthetic placeholders. No
-              live intelligence feeds are connected.
-            </span>
+
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={toggleTheme}
+            aria-label={theme === "mafia" ? "Switch to light theme" : "Switch to dark theme"}
+            title={theme === "mafia" ? "Agency (light)" : "Mafia (dark)"}
+          >
+            {theme === "mafia" ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+
+          <button
+            type="button"
+            className={`icon-btn ${showNotes ? "is-on" : ""}`}
+            onClick={() => setShowNotes((v) => !v)}
+            aria-label="Toggle notes"
+            aria-expanded={showNotes}
+            data-notes
+          >
+            <Bell size={16} />
+          </button>
+
+          {showNotes && (
+            <div className="notes" ref={notesRef}>
+              <div className="notes-head">
+                <span>Workspace notes</span>
+                <button type="button" onClick={() => setShowNotes(false)} aria-label="Close notes">
+                  <X size={14} />
+                </button>
+              </div>
+              <p>
+                {live
+                  ? "Records are coming from your local evidence API."
+                  : "No local API found, so you're looking at sample records."}
+              </p>
+              <p>Nothing here is a live feed or official intelligence.</p>
+            </div>
           )}
-          <span className="demo-banner-label">NOT LIVE DATA</span>
         </div>
+      </header>
 
-        <div className="dashboard-content">
-          <section className="page-heading">
-            <div>
-              <div className="section-eyebrow">
-                <span className="eyebrow-line" />
-                SITUATIONAL AWARENESS
+      <nav className="tabs" aria-label="Sections">
+        {VIEWS.map((v) => {
+          const Icon = v.icon;
+          return (
+            <button
+              key={v.id}
+              type="button"
+              className={`tab ${view === v.id ? "is-on" : ""}`}
+              onClick={() => setView(v.id)}
+              aria-current={view === v.id ? "page" : undefined}
+            >
+              <Icon size={15} strokeWidth={1.7} />
+              {v.label}
+              {v.id === "evidence" && <span className="tab-count">{pad(signals.length)}</span>}
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className={`notice ${live ? "is-live" : ""}`}>
+        <strong>{live ? "Local data" : "Demonstration"}</strong>
+        <span>
+          {live
+            ? `Records come from your local evidence API${attribution ? `, using ${attribution}` : ""}. Historical data, not a live feed.`
+            : "Every record and marker here is a synthetic placeholder. No live feeds are connected."}
+        </span>
+      </div>
+
+      <main className="content">
+        <section className="intro">
+          <h1>{current.title}</h1>
+          <p>{current.lede}</p>
+          <div className="seal" aria-hidden="true">
+            証
+          </div>
+        </section>
+
+        <section className="metrics" aria-label="Counts">
+          {metrics.map((m) => (
+            <MetricCard key={m.label} metric={m} />
+          ))}
+        </section>
+
+        <section className="grid">
+          <article className="card map-card">
+            <div className="card-head">
+              <div>
+                <h2>Map</h2>
+                <p>{live ? "Newest records from the local API" : "Sample records"}</p>
               </div>
-              <h1>{view.title}</h1>
-              <p>{view.description}</p>
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => setLayers(ALL_LAYERS)}
+                title="Show every layer"
+              >
+                <Layers size={14} />
+                All layers
+              </button>
             </div>
 
-            <div className="heading-status">
-              <span className="heading-status-dot" />
-              <span>LOCAL WORKSPACE</span>
-              <span className="heading-status-divider" />
-              <span>PREVIEW BUILD</span>
-            </div>
-          </section>
-
-          <section className="metrics-grid" aria-label="Sample metrics">
-            {metrics.map((metric) => (
-              <MetricCard key={metric.label} metric={metric} />
-            ))}
-          </section>
-
-          <section className="main-grid">
-            <article className="panel map-panel">
-              <div className="panel-heading map-panel-heading">
-                <div>
-                  <div className="panel-kicker">
-                    <span className="live-indicator live-indicator-demo" />
-                    GLOBAL VIEW / SYNTHETIC LAYERS
-                  </div>
-                  <h2>{view.mapTitle}</h2>
-                  <p>Explore the basemap and toggle illustrative records.</p>
-                </div>
-
-                <button
-                  type="button"
-                  className="panel-tool-button"
-                  onClick={() =>
-                    setActiveLayers({
-                      events: true,
-                      aviation: true,
-                      maritime: true,
-                      sites: true,
-                    })
-                  }
-                  title="Show all demonstration layers"
-                >
-                  <Layers size={15} />
-                  <span>Layers</span>
-                </button>
-              </div>
-
-              <div className="map-shell">
-                <Suspense fallback={<MapLoading />}>
-                  <WorldMap activeLayers={activeLayers} records={records} />
-                </Suspense>
-
-                <div className="map-top-overlay">
-                  <span className="map-mode-chip">
-                    <Globe size={13} />
-                    WORLD / 2D
-                  </span>
-                  <span className="map-record-count">
-                    <span className="map-record-dot" />
-                    {pad(records.length)} {live ? "LOCAL API RECORDS" : "SAMPLE RECORDS"}
-                  </span>
-                </div>
-
-                <div className="map-legend">
-                  {LAYERS.map((layer) => {
-                    const Icon = layer.icon;
-                    const enabled = activeLayers[layer.id];
-
-                    return (
-                      <button
-                        key={layer.id}
-                        type="button"
-                        className={`map-layer-toggle ${
-                          enabled ? "map-layer-toggle-active" : ""
-                        }`}
-                        aria-pressed={enabled}
-                        onClick={() => toggleLayer(layer.id)}
-                      >
-                        <span
-                          className="map-legend-dot"
-                          style={{ backgroundColor: layer.color }}
-                        />
-                        <Icon size={13} />
-                        <span>{layer.label}</span>
-                        {enabled && <Check size={12} />}
-                      </button>
-                    );
-                  })}
-                </div>
-
-              </div>
-
-              <div className="map-footer">
-                <div className="map-footer-note">
-                  <ShieldCheck size={15} />
-                  <span>
-                    {live
-                      ? "Historical records, positions rounded to about 11 km. No live or operational positions."
-                      : "Synthetic coordinates only. No real events, installations, or operational positions are represented."}{" "}
-                    Borders are not shown, and place names do not imply any
-                    position on disputed territory.
-                  </span>
-                </div>
-                <span className="map-footer-coordinate">
-                  {live ? "GLOBAL / LOCAL" : "GLOBAL / DEMO"}
-                </span>
-              </div>
-            </article>
-
-            <article className="panel signals-panel">
-              <div className="panel-heading signals-panel-heading">
-                <div>
-                  <div className="panel-kicker">
-                    <span className="signal-heading-dot" />
-                    EVIDENCE MONITOR
-                  </div>
-                  <h2>{view.feedTitle}</h2>
-                  <p>Illustrative records for interface testing.</p>
-                </div>
-
-                <button
-                  type="button"
-                  className={`panel-tool-button filter-tool ${
-                    onlyNeedsReview ? "panel-tool-button-active" : ""
-                  }`}
-                  onClick={() => setOnlyNeedsReview((current) => !current)}
-                  aria-pressed={onlyNeedsReview}
-                  title="Toggle review-needed filter"
-                >
-                  {onlyNeedsReview ? <Filter size={15} /> : <SlidersHorizontal size={15} />}
-                  <span>{onlyNeedsReview ? "Review only" : "Filter"}</span>
-                </button>
-              </div>
-
-              {query && (
-                <div className="search-result-note">
-                  <Search size={13} />
-                  <span>
-                    {visibleSignals.length} match
-                    {visibleSignals.length === 1 ? "" : "es"} for "{query}"
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setQuery("")}
-                    aria-label="Clear search"
-                  >
-                    <X size={13} />
-                  </button>
-                </div>
-              )}
-
-              <div className="signal-list">
-                {visibleSignals.map((signal) => (
-                  <SignalRow key={signal.id} signal={signal} />
-                ))}
-
-                {visibleSignals.length === 0 && (
-                  <div className="empty-state">
-                    <Search size={20} />
-                    <strong>No matching sample records</strong>
-                    <p>Try another search term or clear the review filter.</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setQuery("");
-                        setOnlyNeedsReview(false);
-                      }}
-                    >
-                      Reset filters
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="signals-footer">
-                <span>{visibleSignals.length} SAMPLE RECORDS</span>
-                <span>ALL FICTIONAL</span>
-              </div>
-            </article>
-          </section>
-
-          <section className="bottom-grid">
-            <article className="panel source-panel">
-              <div className="panel-heading compact-panel-heading">
-                <div>
-                  <div className="panel-kicker">INGESTION PIPELINE</div>
-                  <h2>Source connectors</h2>
-                  <p>Candidate integrations, not active data feeds.</p>
-                </div>
-                <span className="small-heading-tag">PLANNED</span>
-              </div>
-
-              <div className="source-list">
-                {sources.map((source) => {
-                  const Icon = source.icon;
-
+            <div className="map-shell">
+              <Suspense fallback={<MapLoading />}>
+                <WorldMap activeLayers={layers} records={records} />
+              </Suspense>
+              <span className="map-count">
+                {pad(records.length)} {live ? "local records" : "sample records"}
+              </span>
+              <div className="legend">
+                {LAYERS.map((layer) => {
+                  const on = layers[layer.id];
+                  const Icon = layer.icon;
                   return (
-                    <div key={source.name} className="source-row">
-                      <span className="source-icon">
-                        <Icon size={16} />
-                      </span>
-                      <div className="source-copy">
-                        <strong>{source.name}</strong>
-                        <span>{source.description}</span>
-                      </div>
-                      <span className="source-status">
-                        <span className="source-status-dot" />
-                        {source.status}
-                      </span>
-                    </div>
+                    <button
+                      key={layer.id}
+                      type="button"
+                      className={`legend-item ${on ? "is-on" : ""}`}
+                      aria-pressed={on}
+                      onClick={() => setLayers((c) => ({ ...c, [layer.id]: !c[layer.id] }))}
+                    >
+                      <span className="swatch" style={{ background: layer.color }} />
+                      <Icon size={13} />
+                      {layer.label}
+                      {on && <Check size={12} />}
+                    </button>
                   );
                 })}
               </div>
-            </article>
-
-            <article className="panel research-panel">
-              <div className="panel-heading compact-panel-heading">
-                <div>
-                  <div className="panel-kicker">RESEARCH DIRECTION</div>
-                  <h2>Evidence before inference</h2>
-                  <p>The planned workflow for every meaningful signal.</p>
-                </div>
-                <Sparkles size={18} className="research-heading-icon" />
-              </div>
-
-              <div className="research-steps">
-                <div className="research-step">
-                  <span className="research-step-number">01</span>
-                  <div>
-                    <strong>Observe</strong>
-                    <p>Capture a timestamped source record.</p>
-                  </div>
-                  <Database size={16} />
-                </div>
-                <div className="research-step">
-                  <span className="research-step-number">02</span>
-                  <div>
-                    <strong>Corroborate</strong>
-                    <p>Trace origins and inspect contradictions.</p>
-                  </div>
-                  <FileSearch size={16} />
-                </div>
-                <div className="research-step">
-                  <span className="research-step-number">03</span>
-                  <div>
-                    <strong>Evaluate</strong>
-                    <p>Record an assessment with uncertainty.</p>
-                  </div>
-                  <ShieldCheck size={16} />
-                </div>
-              </div>
-
-              <div className="research-note">
-                <Zap size={15} />
-                <span>
-                  Forecasting is intentionally deferred until the evidence
-                  pipeline, source integrations, replay, and tests are ready.
-                </span>
-              </div>
-            </article>
-          </section>
-
-          <footer className="dashboard-footer">
-            <div>
-              <span className="footer-brand-mark">J</span>
-              <span>JOCASTA RESEARCH WORKSTATION</span>
-              <span className="footer-divider">/</span>
-              <span>LOCAL DEVELOPMENT</span>
             </div>
-            <div>
-              <span>NO LIVE INTELLIGENCE</span>
-              <span className="footer-divider">/</span>
-              <span>VERSION 0.1.0</span>
+
+            <p className="fine-print">
+              <ShieldCheck size={13} />
+              {live
+                ? "Historical records, positions rounded to about 11 km. No live or operational positions."
+                : "Synthetic coordinates only. Nothing real is shown."}{" "}
+              Borders are not drawn, and place names imply no position on disputed
+              territory.
+            </p>
+          </article>
+
+          <article className="card feed-card">
+            <div className="card-head">
+              <div>
+                <h2>Signals</h2>
+                <p>
+                  {visible.length} of {signals.length}
+                  {query && ` matching "${query}"`}
+                </p>
+              </div>
+              <button
+                type="button"
+                className={`ghost-btn ${onlyReview ? "is-on" : ""}`}
+                onClick={() => setOnlyReview((v) => !v)}
+                aria-pressed={onlyReview}
+              >
+                <Filter size={14} />
+                {onlyReview ? "Needs review" : "All"}
+              </button>
             </div>
-          </footer>
-        </div>
+
+            <div className="feed">
+              {visible.map((s) => (
+                <SignalRow key={s.id} signal={s} />
+              ))}
+              {visible.length === 0 && (
+                <div className="empty">
+                  <p>Nothing matches.</p>
+                  <button
+                    type="button"
+                    className="ghost-btn"
+                    onClick={() => {
+                      setQuery("");
+                      setOnlyReview(false);
+                    }}
+                  >
+                    Reset
+                  </button>
+                </div>
+              )}
+            </div>
+          </article>
+        </section>
+
+        <section className="grid grid-even">
+          <article className="card">
+            <div className="card-head">
+              <div>
+                <h2>Sources</h2>
+                <p>Only used within their licence and terms</p>
+              </div>
+            </div>
+            <ul className="sources">
+              {sources.map((source) => {
+                const Icon = source.icon;
+                return (
+                  <li key={source.name} className={`source s-${source.status.replace(" ", "-").toLowerCase()}`}>
+                    <Icon size={15} strokeWidth={1.7} />
+                    <div>
+                      <strong>{source.name}</strong>
+                      <span>{source.description}</span>
+                    </div>
+                    <em>{source.status}</em>
+                  </li>
+                );
+              })}
+            </ul>
+          </article>
+
+          <article className="card">
+            <div className="card-head">
+              <div>
+                <h2>Method</h2>
+                <p>The order every record goes through</p>
+              </div>
+            </div>
+            <ol className="method">
+              <li>
+                <strong>Observe</strong>
+                <span>Capture a timestamped record from a registered source.</span>
+              </li>
+              <li>
+                <strong>Corroborate</strong>
+                <span>Trace it to its origin and check for independent agreement.</span>
+              </li>
+              <li>
+                <strong>Assess</strong>
+                <span>Record a judgement with its uncertainty, never overwrite the past.</span>
+              </li>
+            </ol>
+            <a className="more" href="https://github.com/t4zc4t/Jocasta/blob/main/docs/ROADMAP.md">
+              Read the roadmap <ArrowUpRight size={13} />
+            </a>
+          </article>
+        </section>
       </main>
+
+      <footer className="footer">
+        <span>Jocasta · open source research, not official intelligence</span>
+        <span>v0.1.0</span>
+      </footer>
     </div>
   );
 }
-
-export default App;

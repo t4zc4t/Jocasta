@@ -68,6 +68,7 @@ export type ApiEvent = {
 // pulls events from the local api once it's online, null means "use samples"
 export function useApiEvents(status: ApiStatus): ApiEvent[] | null {
   const [events, setEvents] = useState<ApiEvent[] | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (status !== "online" || !API_URL) {
@@ -75,23 +76,30 @@ export function useApiEvents(status: ApiStatus): ApiEvent[] | null {
     }
 
     let stopped = false;
-    fetch(`${API_URL}/events`, { signal: AbortSignal.timeout(5000) })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((body: ApiEvent[] | null) => {
+    let retry: number | undefined;
+    // a cold start on a big database can be slow, so wait longer each retry
+    const wait = 20000 + Math.min(attempt, 4) * 10000;
+    fetch(`${API_URL}/events`, { signal: AbortSignal.timeout(wait) })
+      .then((response) => {
+        if (!response.ok) throw new Error(String(response.status));
+        return response.json();
+      })
+      .then((body: ApiEvent[]) => {
         if (!stopped) {
-          setEvents(body && body.length > 0 ? body : null);
+          setEvents(body.length > 0 ? body : null);
         }
       })
       .catch(() => {
         if (!stopped) {
-          setEvents(null);
+          retry = window.setTimeout(() => setAttempt((n) => n + 1), 5000);
         }
       });
 
     return () => {
       stopped = true;
+      window.clearTimeout(retry);
     };
-  }, [status]);
+  }, [status, attempt]);
 
   // stale events never show once the api goes away
   return status === "online" ? events : null;

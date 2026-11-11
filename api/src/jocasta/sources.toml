@@ -1,0 +1,17 @@
+# Every outside source Jocasta uses, with its terms as checked on the date
+# in added_at. If the terms change, add a new entry with a new id instead of
+# editing this one, so older evidence keeps the terms it was collected under.
+
+[[source]]
+id = "ucdp-ged"
+name = "UCDP Georeferenced Event Dataset (GED) Global"
+kind = "dataset"
+url = "https://ucdp.uu.se/downloads/"
+licence = "CC BY 4.0"
+licence_url = "https://creativecommons.org/licenses/by/4.0/"
+attribution = "Uppsala Conflict Data Program (UCDP), Department of Peace and Conflict Research, Uppsala University. Sundberg, R. & Melander, E. (2013) Introducing the UCDP Georeferenced Event Dataset. Journal of Peace Research 50(4). Davies, S., Pettersson, T. & Öberg, M. (2026) Organized violence 1989–2025, and violent political protests. Journal of Peace Research."
+access = "api_key"
+allows_redistribution = true
+rate_limit = "API: 5,000 requests per day, errors count. Token sent as x-ucdp-access-token. CSV downloads need no token."
+added_at = 2026-11-11T00:00:00Z
+notes = "Checked 11 Nov 2026 on ucdp.uu.se/downloads and ucdp.uu.se/apidocs. Latest GED version 26.1 (1989-2025). Every API call must name a version and always returns the same data for it."

@@ -190,3 +190,16 @@ def test_batch_keeps_all_or_nothing(store):
     with store.batch():
         store.add_event(good)
     assert store.latest_event(good.event_id) == good
+
+
+def test_store_works_across_threads(tmp_path):
+    # fastapi can open the store in one thread and use it in another
+    from concurrent.futures import ThreadPoolExecutor
+
+    path = tmp_path / "threads.db"
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        store = pool.submit(Store, path).result()
+    event = make_event()
+    store.add_event(event)
+    assert store.latest_event(event.event_id) == event
+    store.close()

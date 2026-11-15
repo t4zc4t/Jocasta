@@ -72,7 +72,9 @@ def _body(model: BaseModel) -> str:
 
 class Store:
     def __init__(self, path: str | Path = ":memory:") -> None:
-        self.db = sqlite3.connect(path, autocommit=True)
+        # the api opens the store in one worker thread and may use it in
+        # another. Each request gets its own Store, so it's never shared.
+        self.db = sqlite3.connect(path, autocommit=True, check_same_thread=False)
         # has to be set outside a transaction or sqlite ignores it
         self.db.execute("PRAGMA foreign_keys = ON")
         self.db.autocommit = False

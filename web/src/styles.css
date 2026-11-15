@@ -634,6 +634,46 @@ kbd {
   bottom: 52px;
 }
 
+/* attribution, styled to match instead of the default white box */
+.map-canvas .maplibregl-ctrl.maplibregl-ctrl-attrib {
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--panel);
+  color: var(--faint);
+  font-family: "DM Mono", monospace;
+  font-size: 10.5px;
+}
+
+.map-canvas .maplibregl-ctrl-attrib a {
+  color: var(--soft);
+}
+
+.map-canvas .maplibregl-ctrl-attrib a:hover {
+  color: var(--red-text);
+}
+
+/* the icon is drawn dark, so flip it on the dark theme only */
+.map-canvas .maplibregl-ctrl-attrib-button {
+  background-color: transparent;
+  filter: invert(0.85);
+}
+
+:root[data-theme="agency"] .map-canvas .maplibregl-ctrl-attrib-button {
+  filter: none;
+}
+
+.map-canvas .maplibregl-ctrl-scale {
+  border-color: var(--soft);
+  background: var(--panel);
+  color: var(--soft);
+  font-family: "DM Mono", monospace;
+  font-size: 10.5px;
+}
+
+.map-canvas .maplibregl-ctrl-attrib.maplibregl-compact-show {
+  padding: 3px 26px 3px 8px;
+}
+
 .maplibregl-popup-content {
   border-left: 3px solid var(--red);
   border-radius: 2px;

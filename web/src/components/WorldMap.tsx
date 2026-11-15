@@ -39,9 +39,65 @@ function toGeoJson(records: SampleRecord[]) {
 }
 
 function addDemoMapLayers(map: MapLibreMap, records: SampleRecord[]) {
+  // thousands of real points would just be a red smear, so group them
   map.addSource("jocasta-demo-records", {
     type: "geojson",
     data: toGeoJson(records),
+    cluster: true,
+    clusterRadius: 42,
+    clusterMaxZoom: 6,
+  });
+
+  map.addLayer({
+    id: "clusters",
+    type: "circle",
+    source: "jocasta-demo-records",
+    filter: ["has", "point_count"],
+    paint: {
+      "circle-color": "#C8283C",
+      "circle-opacity": 0.85,
+      "circle-radius": ["step", ["get", "point_count"], 12, 25, 16, 250, 21, 2500, 27],
+      "circle-stroke-width": 2,
+      "circle-stroke-color": "#0B0909",
+    },
+  });
+
+  map.addLayer({
+    id: "cluster-count",
+    type: "symbol",
+    source: "jocasta-demo-records",
+    filter: ["has", "point_count"],
+    layout: {
+      "text-field": ["get", "point_count_abbreviated"],
+      "text-font": ["Noto Sans Regular"],
+      "text-size": 11,
+      "text-allow-overlap": true,
+    },
+    paint: { "text-color": "#EDE6DA" },
+  });
+
+  map.on("click", "clusters", async (event) => {
+    const feature = event.features?.[0];
+    const id = feature?.properties?.cluster_id;
+    const source = map.getSource("jocasta-demo-records") as
+      | GeoJSONSource
+      | undefined;
+    if (!source || typeof id !== "number" || feature?.geometry.type !== "Point") {
+      return;
+    }
+    const zoom = await source.getClusterExpansionZoom(id);
+    map.easeTo({
+      center: feature.geometry.coordinates as [number, number],
+      zoom,
+    });
+  });
+
+  map.on("mouseenter", "clusters", () => {
+    map.getCanvas().style.cursor = "pointer";
+  });
+
+  map.on("mouseleave", "clusters", () => {
+    map.getCanvas().style.cursor = "";
   });
 
   for (const layer of LAYERS) {
@@ -49,7 +105,11 @@ function addDemoMapLayers(map: MapLibreMap, records: SampleRecord[]) {
       id: layer.mapLayerId,
       type: "circle",
       source: "jocasta-demo-records",
-      filter: ["==", ["get", "kind"], layer.id],
+      filter: [
+        "all",
+        ["!", ["has", "point_count"]],
+        ["==", ["get", "kind"], layer.id],
+      ],
       paint: {
         "circle-radius": 6,
         "circle-color": layer.color,
@@ -205,8 +265,9 @@ export default function WorldMap({ activeLayers, records }: WorldMapProps) {
     const source = mapRef.current?.getSource("jocasta-demo-records") as
       | GeoJSONSource
       | undefined;
-    source?.setData(toGeoJson(records));
-  }, [records, mapReady]);
+    // clusters mix every layer, so filter the data itself by the toggles
+    source?.setData(toGeoJson(records.filter((r) => activeLayers[r.kind])));
+  }, [records, activeLayers, mapReady]);
 
   return (
     <>

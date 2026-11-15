@@ -5,6 +5,9 @@ export const API_URL: string | undefined =
   import.meta.env.VITE_API_URL ??
   (import.meta.env.DEV ? "http://127.0.0.1:8000" : undefined);
 
+// the map clusters now, so it can take the api's full page
+const EVENT_LIMIT = 5000;
+
 export type ApiStatus = "checking" | "online" | "offline" | "none";
 
 export function useApiStatus(everyMs = 15000): {
@@ -81,7 +84,9 @@ export function useApiEvents(status: ApiStatus): ApiEvent[] | null {
     let retry: number | undefined;
     // a cold start on a big database can be slow, so wait longer each retry
     const wait = 20000 + Math.min(attempt, 4) * 10000;
-    fetch(`${API_URL}/events`, { signal: AbortSignal.timeout(wait) })
+    fetch(`${API_URL}/events?limit=${EVENT_LIMIT}`, {
+      signal: AbortSignal.timeout(wait),
+    })
       .then((response) => {
         if (!response.ok) throw new Error(String(response.status));
         return response.json();

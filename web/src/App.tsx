@@ -94,6 +94,9 @@ const API_LABEL: Record<ApiStatus, string> = {
   none: "Static build",
 };
 
+// thousands of rows in one list freezes the page
+const FEED_LIMIT = 150;
+
 const ALL_LAYERS: Record<LayerId, boolean> = {
   events: true,
   aviation: true,
@@ -426,9 +429,14 @@ export default function App() {
             </div>
 
             <div className="feed">
-              {visible.map((s) => (
+              {visible.slice(0, FEED_LIMIT).map((s) => (
                 <SignalRow key={s.id} signal={s} />
               ))}
+              {visible.length > FEED_LIMIT && (
+                <p className="feed-more">
+                  Showing the newest {FEED_LIMIT}. Search to narrow it down.
+                </p>
+              )}
               {visible.length === 0 && (
                 <div className="empty">
                   <p>Nothing matches.</p>

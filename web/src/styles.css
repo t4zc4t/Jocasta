@@ -674,7 +674,7 @@ kbd {
   padding: 3px 26px 3px 8px;
 }
 
-.maplibregl-popup-content {
+.maplibregl-popup .maplibregl-popup-content {
   border-left: 3px solid var(--red);
   border-radius: 2px;
   background: var(--panel-2);
@@ -682,11 +682,11 @@ kbd {
   font-family: "DM Sans Variable", sans-serif;
 }
 
-.maplibregl-popup-tip {
+.maplibregl-popup .maplibregl-popup-tip {
   display: none;
 }
 
-.maplibregl-popup-close-button {
+.maplibregl-popup .maplibregl-popup-close-button {
   color: var(--soft);
 }
 
@@ -694,6 +694,25 @@ kbd {
   display: block;
   margin-bottom: 4px;
   font-family: "Shippori Mincho", serif;
+}
+
+.jocasta-popup-meta,
+.jocasta-popup-source {
+  display: block;
+  color: var(--faint);
+  font-family: "DM Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.jocasta-popup-meta {
+  margin-bottom: 6px;
+}
+
+.jocasta-popup-source {
+  margin-top: 8px;
+  color: var(--red-text);
 }
 
 .jocasta-popup p {

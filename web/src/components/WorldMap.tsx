@@ -26,7 +26,13 @@ function toGeoJson(records: SampleRecord[]) {
     type: "FeatureCollection" as const,
     features: records.map((record) => ({
       type: "Feature" as const,
-      properties: { kind: record.kind, label: record.label },
+      properties: {
+        kind: record.kind,
+        label: record.label,
+        meta: record.meta ?? "",
+        detail: record.detail ?? "",
+        source: record.source ?? "",
+      },
       geometry: { type: "Point" as const, coordinates: record.coordinates },
     })),
   };
@@ -63,26 +69,42 @@ function addDemoMapLayers(map: MapLibreMap, records: SampleRecord[]) {
 
     map.on("click", layer.mapLayerId, (event) => {
       const feature = event.features?.[0];
-      const rawLabel = feature?.properties?.label;
-      const label =
-        typeof rawLabel === "string" ? rawLabel : "Synthetic sample record";
+      const props = feature?.properties ?? {};
+      const text = (key: string) =>
+        typeof props[key] === "string" ? (props[key] as string) : "";
 
       const content = document.createElement("div");
       content.className = "jocasta-popup";
 
       const heading = document.createElement("strong");
-      heading.textContent = label;
+      heading.textContent = text("label") || "Sample record";
+      content.append(heading);
+
+      // textContent only, the api data is never treated as html
+      if (text("meta")) {
+        const meta = document.createElement("span");
+        meta.className = "jocasta-popup-meta";
+        meta.textContent = text("meta");
+        content.append(meta);
+      }
 
       const detail = document.createElement("p");
       detail.textContent =
+        text("detail") ||
         "Synthetic demonstration data. This is not a real-world event or live intelligence.";
+      content.append(detail);
 
-      content.append(heading, detail);
+      if (text("source")) {
+        const source = document.createElement("span");
+        source.className = "jocasta-popup-source";
+        source.textContent = `Source: ${text("source")}`;
+        content.append(source);
+      }
 
       new Popup({
         closeButton: true,
         closeOnClick: true,
-        maxWidth: "260px",
+        maxWidth: "300px",
       })
         .setLngLat(event.lngLat)
         .setDOMContent(content)

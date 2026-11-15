@@ -40,6 +40,10 @@ export type SampleRecord = {
   kind: LayerId;
   label: string;
   coordinates: [number, number];
+  // shown when the point is clicked
+  meta?: string;
+  detail?: string;
+  source?: string;
 };
 
 export type Metric = {

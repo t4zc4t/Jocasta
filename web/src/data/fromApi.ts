@@ -32,6 +32,23 @@ export function toSignal(event: ApiEvent): Signal {
   };
 }
 
+function day(iso: string) {
+  return iso.slice(0, 10);
+}
+
+function when(event: ApiEvent) {
+  const start = day(event.started_at);
+  const end = event.ended_at ? day(event.ended_at) : start;
+  return start === end ? start : `${start} to ${end}`;
+}
+
+// "importer:ucdp-ged:26.1" -> "ucdp-ged 26.1"
+function sourceOf(event: ApiEvent) {
+  const [kind, id, version] = event.recorded_by.split(":");
+  if (kind !== "importer" || !id) return event.recorded_by;
+  return version ? `${id} ${version}` : id;
+}
+
 // every api event goes on the events layer, other layers stay sample only
 export function toRecords(events: ApiEvent[]): SampleRecord[] {
   return events
@@ -40,5 +57,8 @@ export function toRecords(events: ApiEvent[]): SampleRecord[] {
       kind: "events",
       label: e.title,
       coordinates: [e.place.lon as number, e.place.lat as number],
+      meta: `${when(e)} · ${e.confidence}${e.version > 1 ? ` · v${e.version}` : ""}`,
+      detail: e.summary,
+      source: sourceOf(e),
     }));
 }

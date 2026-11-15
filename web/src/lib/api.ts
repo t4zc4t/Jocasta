@@ -62,6 +62,8 @@ export type ApiEvent = {
   place: { name: string; lat: number | null; lon: number | null };
   confidence: "unverified" | "low" | "medium" | "high";
   started_at: string;
+  ended_at: string | null;
+  recorded_by: string;
   recorded_at: string;
 };
 

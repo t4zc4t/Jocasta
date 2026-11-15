@@ -33,8 +33,13 @@ DEMO_EVENTS = [
 ]
 
 
+def is_demo(event: Event) -> bool:
+    return event.recorded_by == "seed"
+
+
 def seed(store: Store) -> int:
-    if store.get_source(DEMO_SOURCE):
+    # demo data is only for an empty database, never mixed into real data
+    if store.get_source(DEMO_SOURCE) or store.list_events():
         return 0
 
     store.add_source(
@@ -101,6 +106,4 @@ if __name__ == "__main__":
     path = os.environ.get("JOCASTA_DB", "jocasta.db")
     with Store(path) as store:
         count = seed(store)
-    print(
-        f"added {count} demo events to {path}" if count else "demo data already there"
-    )
+    print(f"added {count} demo events to {path}" if count else "skipped demo data")

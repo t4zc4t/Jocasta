@@ -133,3 +133,27 @@ def test_events_limit_and_order(setup):
     assert len(client.get("/events", params={"limit": 1}).json()) == 1
     assert client.get("/events", params={"limit": 0}).status_code == 422
     assert client.get("/events", params={"limit": 999999}).status_code == 422
+
+
+def test_demo_events_hidden_once_real_data_exists(tmp_path, monkeypatch):
+    from jocasta.seed import seed
+
+    path = tmp_path / "mixed.db"
+    monkeypatch.setenv("JOCASTA_DB", str(path))
+    client = TestClient(app)
+    with Store(path) as store:
+        seed(store)
+    assert all(e["recorded_by"] == "seed" for e in client.get("/events").json())
+
+    real = Event(
+        title="Real event",
+        category=Category.OTHER,
+        place=Place(name="Somewhere", precision=PlacePrecision.REGION),
+        started_at=T0,
+        recorded_at=T0,
+        recorded_by="importer:test",
+    )
+    with Store(path) as store:
+        store.add_event(real)
+    titles = [e["title"] for e in client.get("/events").json()]
+    assert titles == ["Real event"]

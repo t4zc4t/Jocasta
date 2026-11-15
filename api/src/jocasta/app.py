@@ -22,6 +22,7 @@ from pydantic import AwareDatetime
 from . import __version__
 from .claim import EvidenceLink
 from .event import Event
+from .seed import is_demo
 from .source import Source
 from .store import Store
 
@@ -82,6 +83,10 @@ def events(
 ) -> list[Event]:
     """Most recent events first, so a big import doesn't flood the dashboard."""
     found = store.list_events(as_of)
+    # demo records only show while there's nothing real to show
+    real = [e for e in found if not is_demo(e)]
+    if real:
+        found = real
     found.sort(key=lambda e: e.started_at, reverse=True)
     return found[:limit]
 

@@ -54,8 +54,9 @@ function addDemoMapLayers(map: MapLibreMap, records: SampleRecord[]) {
     source: "jocasta-demo-records",
     filter: ["has", "point_count"],
     paint: {
-      "circle-color": "#C8283C",
-      "circle-opacity": 0.85,
+      // brighter than the theme red, the map's colour filter dulls it
+      "circle-color": "#FF1030",
+      "circle-opacity": 0.92,
       "circle-radius": ["step", ["get", "point_count"], 12, 25, 16, 250, 21, 2500, 27],
       "circle-stroke-width": 2,
       "circle-stroke-color": "#0B0909",

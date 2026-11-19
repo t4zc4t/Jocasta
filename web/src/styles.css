@@ -260,6 +260,18 @@ kbd {
   color: var(--text);
 }
 
+/* shows which side you're on, not just a sun or moon */
+.theme-btn {
+  display: inline-flex;
+  gap: 7px;
+  width: auto;
+  padding: 0 11px;
+  font-family: "DM Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .notes {
   position: absolute;
   top: 74px;
@@ -974,6 +986,15 @@ kbd {
 
   .intro {
     padding-right: 0;
+  }
+
+  .theme-name {
+    display: none;
+  }
+
+  .theme-btn {
+    width: 36px;
+    padding: 0;
   }
 
   .seal {

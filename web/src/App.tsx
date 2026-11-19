@@ -270,12 +270,15 @@ export default function App() {
 
           <button
             type="button"
-            className="icon-btn"
+            className="icon-btn theme-btn"
             onClick={toggleTheme}
             aria-label={theme === "mafia" ? "Switch to light theme" : "Switch to dark theme"}
             title={theme === "mafia" ? "Agency (light)" : "Mafia (dark)"}
           >
             {theme === "mafia" ? <Sun size={16} /> : <Moon size={16} />}
+            <span className="theme-name">
+              {theme === "mafia" ? "Mafia" : "Agency"}
+            </span>
           </button>
 
           <button

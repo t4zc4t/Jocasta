@@ -37,7 +37,7 @@ On Windows, double-click `boot.cmd`. It sets everything up, loads some demo reco
 
 To do it by hand instead:
 
-The dashboard needs Node 24 or newer:
+The dashboard needs Node 26 or newer:
 
 ```
 cd web

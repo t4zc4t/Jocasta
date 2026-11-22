@@ -157,3 +157,11 @@ def test_demo_events_hidden_once_real_data_exists(tmp_path, monkeypatch):
         store.add_event(real)
     titles = [e["title"] for e in client.get("/events").json()]
     assert titles == ["Real event"]
+
+
+def test_claim_lookup(setup):
+    client, v1 = setup
+    link = client.get(f"/events/{v1.event_id}/evidence").json()[0]
+    claim = client.get(f"/claims/{link['claim_id']}").json()
+    assert claim["source_id"] == "test-source"
+    assert client.get(f"/claims/{uuid7()}").status_code == 404

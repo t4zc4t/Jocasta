@@ -20,7 +20,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import AwareDatetime
 
 from . import __version__
-from .claim import EvidenceLink
+from .claim import Claim, EvidenceLink
 from .event import Event
 from .seed import is_demo
 from .source import Source
@@ -108,3 +108,11 @@ def history(event_id: UUID, store: StoreDep) -> list[Event]:
 def evidence(event_id: UUID, store: StoreDep, as_of: AsOf = None) -> list[EvidenceLink]:
     _event_or_404(store, event_id, as_of)
     return store.links_for(event_id, as_of)
+
+
+@app.get("/claims/{claim_id}")
+def claim(claim_id: UUID, store: StoreDep) -> Claim:
+    found = store.get_claim(claim_id)
+    if found is None:
+        raise HTTPException(status_code=404, detail="claim not found")
+    return found

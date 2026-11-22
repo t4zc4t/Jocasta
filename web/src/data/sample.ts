@@ -26,6 +26,8 @@ export type Signal = {
   time: string;
   icon: LucideIcon;
   accent: string;
+  // only real events have one, it opens the detail panel
+  eventId?: string;
 };
 
 export type MapLayer = {

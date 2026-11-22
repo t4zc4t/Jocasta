@@ -435,6 +435,37 @@ kbd {
   box-shadow: var(--shadow);
 }
 
+.dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-bottom: 16px;
+}
+
+.dates label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--soft);
+  font-family: "DM Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dates input {
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0;
+  color-scheme: inherit;
+}
+
 .metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -932,6 +963,117 @@ kbd {
 
 .more:hover {
   text-decoration: underline;
+}
+
+/* event detail panel */
+
+.signal.is-link {
+  cursor: pointer;
+}
+
+.signal.is-link:hover h3 {
+  color: var(--red-text);
+}
+
+.panel-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(11, 9, 9, 0.55);
+}
+
+.event-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(460px, 100%);
+  padding: 26px 24px 30px;
+  overflow-y: auto;
+  border-left: 3px solid var(--red);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.panel-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.panel-kicker,
+.panel-small {
+  display: block;
+  color: var(--faint);
+  font-family: "DM Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.event-panel h2 {
+  margin: 6px 40px 6px 0;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.event-panel h3 {
+  margin: 24px 0 8px;
+  font-family: "Shippori Mincho", serif;
+  font-size: 17px;
+}
+
+.event-panel h3::after {
+  content: "";
+  display: block;
+  width: 80px;
+  height: 2px;
+  margin-top: 5px;
+  background: linear-gradient(90deg, var(--red), transparent);
+}
+
+.event-panel p {
+  margin: 6px 0;
+  color: var(--soft);
+  font-size: 14px;
+}
+
+.panel-meta {
+  color: var(--text) !important;
+}
+
+.panel-note {
+  color: var(--faint) !important;
+}
+
+.panel-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panel-list li {
+  padding: 10px 0 10px 12px;
+  border-left: 2px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.rel {
+  display: inline-block;
+  margin-bottom: 3px;
+  color: var(--text);
+  font-family: "DM Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rel-supports {
+  color: var(--red-text);
+}
+
+.rel-contradicts {
+  color: var(--sand);
 }
 
 /* footer */

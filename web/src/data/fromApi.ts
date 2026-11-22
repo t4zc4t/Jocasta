@@ -21,6 +21,7 @@ export function toSignal(event: ApiEvent): Signal {
   const revised = event.version > 1;
   return {
     id: `EVT-${event.event_id.slice(0, 8).toUpperCase()}`,
+    eventId: event.event_id,
     category: `${event.category.toUpperCase()} · ${event.place.name.toUpperCase()}`,
     title: event.title,
     summary: event.summary || "No summary yet.",

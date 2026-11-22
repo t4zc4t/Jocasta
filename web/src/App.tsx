@@ -1,4 +1,12 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ArrowUpRight,
   Bell,
@@ -37,6 +45,8 @@ import {
   type ApiStatus,
 } from "./lib/api";
 import { useTheme } from "./lib/theme";
+
+const EventPanel = lazy(() => import("./components/EventPanel"));
 
 // maplibre is most of the bundle, so load it in its own chunk
 const WorldMap = lazy(() => import("./components/WorldMap"));
@@ -131,9 +141,31 @@ function MetricCard({ metric }: { metric: Metric }) {
   );
 }
 
-function SignalRow({ signal }: { signal: Signal }) {
+function SignalRow({
+  signal,
+  onOpen,
+}: {
+  signal: Signal;
+  onOpen: (eventId: string) => void;
+}) {
+  const id = signal.eventId;
   return (
-    <article className={`signal status-${signal.status.toLowerCase()}`}>
+    <article
+      className={`signal status-${signal.status.toLowerCase()} ${id ? "is-link" : ""}`}
+      onClick={id ? () => onOpen(id) : undefined}
+      onKeyDown={
+        id
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onOpen(id);
+              }
+            }
+          : undefined
+      }
+      role={id ? "button" : undefined}
+      tabIndex={id ? 0 : undefined}
+    >
       <div className="signal-top">
         <span className="signal-category">{signal.category}</span>
         <span className="signal-time">{signal.time} ago</span>
@@ -152,22 +184,36 @@ export default function App() {
   const [onlyReview, setOnlyReview] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [layers, setLayers] = useState(ALL_LAYERS);
+  const [openEvent, setOpenEvent] = useState<string | null>(null);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
 
   const searchRef = useRef<HTMLInputElement | null>(null);
   const notesRef = useRef<HTMLDivElement | null>(null);
+
+  const closePanel = useCallback(() => setOpenEvent(null), []);
 
   const api = useApiStatus();
   const apiEvents = useApiEvents(api.status);
   const apiSources = useApiSources(api.status);
   const live = apiEvents !== null;
 
+  // the date range only applies to real events, samples have no dates
+  const datedEvents = useMemo(() => {
+    if (!apiEvents) return null;
+    return apiEvents.filter((e) => {
+      const day = e.started_at.slice(0, 10);
+      return (!from || day >= from) && (!to || day <= to);
+    });
+  }, [apiEvents, from, to]);
+
   const signals = useMemo(
-    () => (apiEvents ? apiEvents.map(toSignal) : SIGNALS),
-    [apiEvents],
+    () => (datedEvents ? datedEvents.map(toSignal) : SIGNALS),
+    [datedEvents],
   );
   const records = useMemo(
-    () => (apiEvents ? toRecords(apiEvents) : SAMPLE_RECORDS),
-    [apiEvents],
+    () => (datedEvents ? toRecords(datedEvents) : SAMPLE_RECORDS),
+    [datedEvents],
   );
   const sources = useMemo(
     () => withConnected(apiSources.map((s) => s.id)),
@@ -348,6 +394,42 @@ export default function App() {
           </div>
         </section>
 
+        {live && (
+          <section className="dates" aria-label="Date range">
+            <label>
+              From
+              <input
+                type="date"
+                value={from}
+                max={to || undefined}
+                onChange={(e) => setFrom(e.target.value)}
+              />
+            </label>
+            <label>
+              To
+              <input
+                type="date"
+                value={to}
+                min={from || undefined}
+                onChange={(e) => setTo(e.target.value)}
+              />
+            </label>
+            {(from || to) && (
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => {
+                  setFrom("");
+                  setTo("");
+                }}
+              >
+                <X size={13} />
+                Clear dates
+              </button>
+            )}
+          </section>
+        )}
+
         <section className="metrics" aria-label="Counts">
           {metrics.map((m) => (
             <MetricCard key={m.label} metric={m} />
@@ -433,7 +515,7 @@ export default function App() {
 
             <div className="feed">
               {visible.slice(0, FEED_LIMIT).map((s) => (
-                <SignalRow key={s.id} signal={s} />
+                <SignalRow key={s.id} signal={s} onOpen={setOpenEvent} />
               ))}
               {visible.length > FEED_LIMIT && (
                 <p className="feed-more">
@@ -511,6 +593,12 @@ export default function App() {
           </article>
         </section>
       </main>
+
+      {openEvent && (
+        <Suspense fallback={null}>
+          <EventPanel eventId={openEvent} onClose={closePanel} />
+        </Suspense>
+      )}
 
       <footer className="footer">
         <span>Jocasta · open source research, not official intelligence</span>

@@ -137,3 +137,59 @@ export function useApiSources(status: ApiStatus): ApiSource[] {
 
   return status === "online" ? sources : [];
 }
+
+export type ApiVersion = ApiEvent & {
+  record_id: string;
+  change_note: string | null;
+};
+
+export type ApiLink = {
+  id: string;
+  claim_id: string;
+  relation: "supports" | "contradicts" | "mentions";
+  independent: boolean | null;
+  created_at: string;
+};
+
+export type ApiClaim = {
+  id: string;
+  source_id: string;
+  text: string;
+  quote: string | null;
+  url: string | null;
+  published_at: string | null;
+  retrieved_at: string;
+};
+
+export type EventDetail = {
+  history: ApiVersion[];
+  evidence: { link: ApiLink; claim: ApiClaim | null }[];
+};
+
+// enough for the panel, a huge list wouldn't be readable anyway
+const MAX_CLAIMS = 20;
+
+async function getJson<T>(path: string): Promise<T> {
+  const response = await fetch(`${API_URL}${path}`, {
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) throw new Error(`${path} ${response.status}`);
+  return response.json() as Promise<T>;
+}
+
+export async function loadEventDetail(eventId: string): Promise<EventDetail> {
+  if (!API_URL) throw new Error("no api");
+  const [history, links] = await Promise.all([
+    getJson<ApiVersion[]>(`/events/${eventId}/history`),
+    getJson<ApiLink[]>(`/events/${eventId}/evidence`),
+  ]);
+  const evidence = await Promise.all(
+    links.slice(0, MAX_CLAIMS).map(async (link) => ({
+      link,
+      claim: await getJson<ApiClaim>(`/claims/${link.claim_id}`).catch(
+        () => null,
+      ),
+    })),
+  );
+  return { history, evidence };
+}

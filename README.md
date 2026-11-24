@@ -12,14 +12,17 @@ Most dashboards show you a dot on a map and expect you to trust it. I want Jocas
 
 ## Where it stands
 
-It's early. Nothing real is connected yet, and every record on the site is synthetic.
+Still early. The public site only shows sample records. Real data so far comes from one source, the UCDP Georeferenced Event Dataset, and only runs on your own machine through the local API.
 
 What works today:
 
-- a dashboard with a world map, sample records, search and filters, deployed to GitHub Pages on every push
+- a dashboard in two themes with a world map, search, filters and a date range, deployed to GitHub Pages on every push
+- map points that group into clusters, so thousands of events stay readable
+- a detail panel for each event showing the evidence behind it and every version of the record
 - an evidence core in Python with sources, claims, evidence links and versioned events
 - an append-only SQLite store that refuses edits and deletes, and can replay what was known at any past moment
-- a read-only local API over that store, which the dashboard detects when it's running
+- a read-only local API over that store, which the dashboard picks up when it's running
+- an importer for UCDP GED that rounds every position to about 11 km
 
 The full plan is in [docs/ROADMAP.md](docs/ROADMAP.md).
 

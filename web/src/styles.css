@@ -454,6 +454,11 @@ kbd {
   text-transform: uppercase;
 }
 
+.dates-hint {
+  color: var(--faint);
+  font-size: 12.5px;
+}
+
 .dates input {
   padding: 6px 9px;
   border: 1px solid var(--line);

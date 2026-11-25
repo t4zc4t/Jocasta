@@ -198,6 +198,13 @@ export default function App() {
   const apiSources = useApiSources(api.status);
   const live = apiEvents !== null;
 
+  // first and last day of the loaded events, used to bound the date boxes
+  const dataRange = useMemo(() => {
+    if (!apiEvents || apiEvents.length === 0) return null;
+    const days = apiEvents.map((e) => e.started_at.slice(0, 10)).sort();
+    return { first: days[0], last: days[days.length - 1] };
+  }, [apiEvents]);
+
   // the date range only applies to real events, samples have no dates
   const datedEvents = useMemo(() => {
     if (!apiEvents) return null;
@@ -401,7 +408,8 @@ export default function App() {
               <input
                 type="date"
                 value={from}
-                max={to || undefined}
+                min={dataRange?.first}
+                max={to || dataRange?.last}
                 onChange={(e) => setFrom(e.target.value)}
               />
             </label>
@@ -410,10 +418,16 @@ export default function App() {
               <input
                 type="date"
                 value={to}
-                min={from || undefined}
+                min={from || dataRange?.first}
+                max={dataRange?.last}
                 onChange={(e) => setTo(e.target.value)}
               />
             </label>
+            {dataRange && (
+              <span className="dates-hint">
+                Data covers {dataRange.first} to {dataRange.last}
+              </span>
+            )}
             {(from || to) && (
               <button
                 type="button"

@@ -59,12 +59,6 @@ uv run uvicorn jocasta.app:app --host 127.0.0.1
 
 With both running, the sidebar card on the dashboard shows the API as online. The API docs are at http://127.0.0.1:8000.
 
-## Ground rules
-
-- No tracking of private individuals.
-- No live or actionable military positions, only documented permanent sites, history and aggregates.
-- No country borders are drawn on the map, since many are disputed, and place names don't imply any position on disputed territory.
-- Every source is used within its licence, attribution and rate limits. If the terms aren't confirmed, the data isn't shared.
 
 ## License
 
